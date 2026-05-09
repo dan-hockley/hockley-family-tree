@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { TreeNode } from '../types';
 import { NODE_W } from '../lib/pedigree';
@@ -43,6 +44,7 @@ function Star({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string 
 }
 
 export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNotes }: Props) {
+  const [hovered, setHovered] = useState(false);
   const colorKey = Math.min(node.generation, 4);
   const genColor = GENERATION_COLORS[colorKey] ?? GENERATION_COLORS[4];
   const genLabel = GENERATION_LABELS[colorKey] ?? 'Ancestor';
@@ -53,13 +55,20 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
   const showLabel = node.generation !== 0 || node.role === 'sibling' || node.role === 'spouse';
   let labelText: string | null = null;
   let labelColor = '#aaaaaa';
+  let hoverColor = '#0a0a0a';
   if (node.generation === 0) {
     if (node.role === 'sibling') labelText = 'Sibling';
     else if (node.role === 'spouse') labelText = 'Spouse';
+    // Sibling/Spouse hover stays black
   } else {
     labelText = genLabel;
     labelColor = genColor;
+    hoverColor = genColor;
   }
+
+  // When hovered (not root), swap to filled color with white text
+  const filled = isRoot || hovered;
+  const fillBg = isRoot ? '#0a0a0a' : hoverColor;
 
   return (
     <motion.div
@@ -69,6 +78,8 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
       exit={{ opacity: 0, y: 6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       onClick={() => onSelect(node.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`person-card ${isRoot ? 'is-root' : ''}`}
       style={{
         position: 'absolute',
@@ -77,16 +88,19 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
         width: NODE_W,
         left: node.x,
         top: node.y,
-        background: isRoot ? '#0a0a0a' : '#ffffff',
-        border: `1px solid ${isRoot ? '#0a0a0a' : '#d8d8d8'}`,
-        borderTop: isRoot ? '3px solid #0a0a0a' : '1px solid #d8d8d8',
+        background: filled ? fillBg : '#ffffff',
+        border: `1px solid ${filled ? fillBg : '#d8d8d8'}`,
+        borderTop: isRoot
+          ? '3px solid #0a0a0a'
+          : (hovered ? `1px solid ${fillBg}` : '1px solid #d8d8d8'),
         borderRadius: 0,
         padding: '10px 12px',
+        transition: 'background 0.12s, border-color 0.12s',
       }}
     >
       {/* Top row: star + label + (optional) notes indicator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, minHeight: 8 }}>
-        <Star size={7} color={isRoot ? '#ffffff' : '#0a0a0a'} />
+        <Star size={7} color={filled ? '#ffffff' : '#0a0a0a'} />
         {showLabel && labelText && (
           <span style={{
             fontFamily: "'Inter', sans-serif",
@@ -94,7 +108,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
             fontWeight: 800,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color: labelColor,
+            color: filled ? '#ffffff' : labelColor,
             lineHeight: 1,
           }}>
             {labelText}
@@ -116,7 +130,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
               justifyContent: 'center',
               gap: 1,
               padding: '1px 2px',
-              border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
+              border: `1px solid ${filled ? 'rgba(255,255,255,0.55)' : '#bbbbbb'}`,
               borderRadius: 2,
               background: 'transparent',
               cursor: 'pointer',
@@ -129,7 +143,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
                 style={{
                   width: 6,
                   height: 1,
-                  background: isRoot ? 'rgba(255,255,255,0.55)' : '#999999',
+                  background: filled ? '#ffffff' : '#999999',
                   display: 'block',
                 }}
               />
@@ -144,7 +158,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
           fontFamily: "'Inter', sans-serif",
           fontWeight: 700,
           fontSize: 22,
-          color: isRoot ? '#ffffff' : '#0a0a0a',
+          color: filled ? '#ffffff' : '#0a0a0a',
           lineHeight: 1.1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -162,7 +176,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
             fontFamily: "'Inter', sans-serif",
             fontWeight: 700,
             fontSize: 8,
-            color: isRoot ? 'rgba(255,255,255,0.55)' : '#888888',
+            color: filled ? 'rgba(255,255,255,0.75)' : '#888888',
             lineHeight: 1.2,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -180,7 +194,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
       {lifespan && (
         <>
           <div style={{
-            borderTop: `1px solid ${isRoot ? 'rgba(255,255,255,0.15)' : '#ececec'}`,
+            borderTop: `1px solid ${filled ? 'rgba(255,255,255,0.25)' : '#ececec'}`,
             marginTop: 8,
           }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 6 }}>
@@ -190,7 +204,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
               fontWeight: 600,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              color: isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb',
+              color: filled ? 'rgba(255,255,255,0.55)' : '#bbbbbb',
             }}>
               {birthYear && deathYear ? 'Lifespan' : 'Born'}
             </span>
@@ -198,7 +212,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
               fontFamily: "'Inter', sans-serif",
               fontSize: 9,
               fontWeight: 500,
-              color: isRoot ? 'rgba(255,255,255,0.75)' : '#444444',
+              color: filled ? '#ffffff' : '#444444',
               letterSpacing: '0.04em',
             }}>
               {lifespan}
@@ -212,7 +226,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
           <span style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: 7,
-            color: isRoot ? 'rgba(255,255,255,0.3)' : '#cccccc',
+            color: filled ? 'rgba(255,255,255,0.55)' : '#cccccc',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
             overflow: 'hidden',

@@ -87,7 +87,7 @@ export async function loadGedcom(
     if (rec.level === 0) {
       // Flush pending note
       if (inNote && currentId && individuals[currentId]) {
-        individuals[currentId].notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
+        individuals[currentId].notes.push(decodeEntities(pendingNoteLines.join('').trim()));
       }
       pendingNoteLines = [];
       inNote = false;
@@ -121,7 +121,7 @@ export async function loadGedcom(
       if (rec.level === 1) {
         // Flush pending multi-line note
         if (inNote) {
-          indi.notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
+          indi.notes.push(decodeEntities(pendingNoteLines.join('').trim()));
           pendingNoteLines = [];
           inNote = false;
         }
@@ -154,7 +154,9 @@ export async function loadGedcom(
 
       if (rec.level === 2) {
         if (inNote) {
-          if (rec.tag === 'CONT' || rec.tag === 'CONC') {
+          if (rec.tag === 'CONT') {
+            pendingNoteLines.push('\n' + rec.value);
+          } else if (rec.tag === 'CONC') {
             pendingNoteLines.push(rec.value);
           }
           continue;
@@ -199,7 +201,7 @@ export async function loadGedcom(
   // Flush any trailing note
   for (const [id, indi] of Object.entries(individuals)) {
     if (inNote && id === currentId) {
-      indi.notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
+      indi.notes.push(decodeEntities(pendingNoteLines.join('').trim()));
     }
   }
 

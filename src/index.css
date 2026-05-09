@@ -41,13 +41,9 @@ input, button {
   scrollbar-width: none;
 }
 
-/* Person card hover and tap effects (replaces inline JS hover) */
+/* Person card tap feedback */
 .person-card {
-  transition: border-color 0.12s ease, transform 0.12s ease;
   -webkit-tap-highlight-color: transparent;
-}
-.person-card:not(.is-root):hover {
-  border-color: #0a0a0a;
 }
 .person-card:active {
   transform: scale(0.98);

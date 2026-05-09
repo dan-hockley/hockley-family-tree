@@ -103,6 +103,7 @@ function DataRow({
           color: '#333333',
           textAlign: 'left',
           lineHeight: 1.55,
+          whiteSpace: 'pre-wrap',
         }}>
           {children}
         </div>
