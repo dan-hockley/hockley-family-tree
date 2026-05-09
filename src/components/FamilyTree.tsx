@@ -52,7 +52,11 @@ function childPath(px: number, py: number, cx: number, cy: number): string {
   ].join(' ');
 }
 
-function renderEdge(edge: PedigreeEdge, nodeMap: Map<string, { x: number; y: number }>) {
+function renderEdge(
+  edge: PedigreeEdge,
+  nodeMap: Map<string, { x: number; y: number }>,
+  patrilinealEdges: Set<string>,
+) {
   const a = nodeMap.get(edge.childId);
   const b = nodeMap.get(edge.parentId);
   if (!a || !b) return null;
@@ -60,13 +64,14 @@ function renderEdge(edge: PedigreeEdge, nodeMap: Map<string, { x: number; y: num
   const key = `${edge.type}-${edge.childId}-${edge.parentId}`;
 
   if (edge.type === 'ancestor') {
+    const isPatrilineal = patrilinealEdges.has(`${edge.childId}|${edge.parentId}`);
     return (
       <path
         key={key}
         d={ancestorPath(a.x + NODE_W / 2, a.y, b.x + NODE_W / 2, b.y + NODE_H)}
         fill="none"
-        stroke="#c8c8c8"
-        strokeWidth="1"
+        stroke={isPatrilineal ? '#0a0a0a' : '#c8c8c8'}
+        strokeWidth={isPatrilineal ? 1.5 : 1}
       />
     );
   }
@@ -151,6 +156,26 @@ export default function FamilyTree({ persons, details }: Props) {
     layout?.nodes.forEach(n => m.set(n.id, { x: n.x, y: n.y }));
     return m;
   }, [layout]);
+
+  // Set of (childId|parentId) edges along the patrilineal chain (root → father → father's father …)
+  const patrilinealEdges = useMemo(() => {
+    const set = new Set<string>();
+    if (!rootId) return set;
+    let currentId: string | undefined = rootId;
+    const seen = new Set<string>();
+    while (currentId && !seen.has(currentId)) {
+      seen.add(currentId);
+      const person = personMap.get(currentId);
+      const fatherId = person?.fatherIds[0];
+      if (fatherId && personMap.has(fatherId)) {
+        set.add(`${currentId}|${fatherId}`);
+        currentId = fatherId;
+      } else {
+        break;
+      }
+    }
+    return set;
+  }, [rootId, personMap]);
 
   function navigateTo(id: string) {
     setSidebarId(null);
@@ -497,7 +522,7 @@ export default function FamilyTree({ persons, details }: Props) {
               }}
               overflow="visible"
             >
-              {layout.edges.map(edge => renderEdge(edge, nodeMap))}
+              {layout.edges.map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
             </svg>
 
             <AnimatePresence>
