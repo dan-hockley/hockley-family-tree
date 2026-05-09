@@ -70,7 +70,7 @@ function renderEdge(
         key={key}
         d={ancestorPath(a.x + NODE_W / 2, a.y, b.x + NODE_W / 2, b.y + NODE_H)}
         fill="none"
-        stroke={isPatrilineal ? '#0a0a0a' : '#c8c8c8'}
+        stroke={isPatrilineal ? '#666666' : '#c8c8c8'}
         strokeWidth={isPatrilineal ? 1.5 : 1}
       />
     );
@@ -82,8 +82,8 @@ function renderEdge(
         key={key}
         d={childPath(b.x + NODE_W / 2, b.y + NODE_H, a.x + NODE_W / 2, a.y)}
         fill="none"
-        stroke="#c8c8c8"
-        strokeWidth="1"
+        stroke="#666666"
+        strokeWidth="1.5"
       />
     );
   }
@@ -522,13 +522,13 @@ export default function FamilyTree({ persons, details }: Props) {
               }}
               overflow="visible"
             >
-              {/* Render non-patrilineal edges first */}
+              {/* Render light/grey edges first */}
               {layout.edges
-                .filter(e => !patrilinealEdges.has(`${e.childId}|${e.parentId}`))
+                .filter(e => e.type !== 'child' && !patrilinealEdges.has(`${e.childId}|${e.parentId}`))
                 .map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
-              {/* Patrilineal chain on top */}
+              {/* Black father-line edges on top: patrilineal chain + child edges */}
               {layout.edges
-                .filter(e => patrilinealEdges.has(`${e.childId}|${e.parentId}`))
+                .filter(e => e.type === 'child' || patrilinealEdges.has(`${e.childId}|${e.parentId}`))
                 .map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
             </svg>
 
