@@ -22,6 +22,19 @@ function parseDate(raw: string | undefined): string | undefined {
   return raw.replace(/^(ABT|CAL|EST|BEF|AFT)\s+/i, '~').trim() || undefined;
 }
 
+// Decode common HTML entities that Ancestry leaves in NOTE fields
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+}
+
 export async function loadGedcom(
   url: string
 ): Promise<{ persons: Person[]; details: Map<string, PersonDetail> }> {
@@ -74,7 +87,7 @@ export async function loadGedcom(
     if (rec.level === 0) {
       // Flush pending note
       if (inNote && currentId && individuals[currentId]) {
-        individuals[currentId].notes.push(pendingNoteLines.join(' ').trim());
+        individuals[currentId].notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
       }
       pendingNoteLines = [];
       inNote = false;
@@ -108,7 +121,7 @@ export async function loadGedcom(
       if (rec.level === 1) {
         // Flush pending multi-line note
         if (inNote) {
-          indi.notes.push(pendingNoteLines.join(' ').trim());
+          indi.notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
           pendingNoteLines = [];
           inNote = false;
         }
@@ -152,7 +165,7 @@ export async function loadGedcom(
           if (rec.tag === 'DATE') currentEvent.date = parseDate(rec.value);
           else if (rec.tag === 'PLAC') currentEvent.place = rec.value;
           else if (rec.tag === 'TYPE') currentEvent.description = rec.value;
-          else if (rec.tag === 'NOTE') currentEvent.notes.push(rec.value);
+          else if (rec.tag === 'NOTE') currentEvent.notes.push(decodeEntities(rec.value));
           else if (rec.tag === 'SOUR') currentEvent.sources.push(rec.value);
           continue;
         }
@@ -186,7 +199,7 @@ export async function loadGedcom(
   // Flush any trailing note
   for (const [id, indi] of Object.entries(individuals)) {
     if (inNote && id === currentId) {
-      indi.notes.push(pendingNoteLines.join(' ').trim());
+      indi.notes.push(decodeEntities(pendingNoteLines.join(' ').trim()));
     }
   }
 

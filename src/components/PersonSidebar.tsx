@@ -69,11 +69,45 @@ function DataRow({
   label,
   children,
   valueSize,
+  block = false,
 }: {
   label: string;
   children: React.ReactNode;
   valueSize: number;
+  block?: boolean;
 }) {
+  if (block) {
+    return (
+      <div style={{
+        borderBottom: '1px solid #ececec',
+        padding: '12px 0 14px',
+      }}>
+        <div style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 8,
+          fontWeight: 700,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: '#aaaaaa',
+          marginBottom: 8,
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 11,
+          fontWeight: 400,
+          fontStyle: 'normal',
+          color: '#444444',
+          textAlign: 'left',
+          lineHeight: 1.6,
+        }}>
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       borderBottom: '1px solid #ececec',
@@ -280,24 +314,47 @@ export default function PersonSidebar({
                     </div>
                   </DataRow>
                 )}
-                {detail && detail.events.map((ev, i) => (
-                  <DataRow key={`e-${i}`} label={eventLabel(ev.type, ev.description)} valueSize={valueSize}>
-                    <span>{ev.date ?? ''}</span>
-                    {ev.place && (
-                      <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 2, fontWeight: 400 }}>
-                        {ev.place}
-                      </span>
-                    )}
-                    {ev.notes?.map((n, j) => (
-                      <span key={j} style={{ display: 'block', fontSize: 10, color: '#888888', fontStyle: 'italic', marginTop: 2, fontWeight: 400 }}>
-                        {n}
-                      </span>
-                    ))}
-                  </DataRow>
-                ))}
+                {detail && detail.events.map((ev, i) => {
+                  const labelText = eventLabel(ev.type, ev.description);
+                  const isLongDescription = labelText.length > 28;
+                  if (isLongDescription) {
+                    return (
+                      <DataRow key={`e-${i}`} label={ev.type} valueSize={valueSize} block>
+                        <div style={{ fontWeight: 600, marginBottom: ev.date || ev.place ? 6 : 0 }}>
+                          {labelText}
+                        </div>
+                        {(ev.date || ev.place) && (
+                          <div style={{ fontSize: 11, color: '#888888', letterSpacing: '0.04em' }}>
+                            {ev.date}{ev.date && ev.place ? ' · ' : ''}{ev.place}
+                          </div>
+                        )}
+                        {ev.notes?.map((n, j) => (
+                          <div key={j} style={{ marginTop: 8, fontSize: 13, color: '#444444', fontStyle: 'italic' }}>
+                            {n}
+                          </div>
+                        ))}
+                      </DataRow>
+                    );
+                  }
+                  return (
+                    <DataRow key={`e-${i}`} label={labelText} valueSize={valueSize}>
+                      <span>{ev.date ?? ''}</span>
+                      {ev.place && (
+                        <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 2, fontWeight: 400 }}>
+                          {ev.place}
+                        </span>
+                      )}
+                      {ev.notes?.map((n, j) => (
+                        <span key={j} style={{ display: 'block', fontSize: 10, color: '#888888', fontStyle: 'italic', marginTop: 2, fontWeight: 400 }}>
+                          {n}
+                        </span>
+                      ))}
+                    </DataRow>
+                  );
+                })}
                 {detail && detail.notes.map((n, i) => (
-                  <DataRow key={`n-${i}`} label="Note" valueSize={valueSize}>
-                    <span style={{ fontStyle: 'italic', color: '#555555', fontWeight: 400 }}>{n}</span>
+                  <DataRow key={`n-${i}`} label="Note" valueSize={valueSize} block>
+                    {n}
                   </DataRow>
                 ))}
               </div>
