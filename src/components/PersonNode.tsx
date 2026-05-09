@@ -115,12 +115,12 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
               alignItems: 'center',
               justifyContent: 'center',
               gap: 1.5,
-              padding: '0 4px',
-              height: 11,
+              padding: 2,
               border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
-              borderRadius: 3,
+              borderRadius: 2,
               background: 'transparent',
               cursor: 'pointer',
+              lineHeight: 0,
             }}
           >
             {[0, 1, 2].map(i => (
