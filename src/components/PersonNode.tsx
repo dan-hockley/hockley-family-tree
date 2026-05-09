@@ -5,6 +5,7 @@ import { NODE_W } from '../lib/pedigree';
 interface Props {
   node: TreeNode;
   isRoot: boolean;
+  hasNotes?: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -40,7 +41,7 @@ function Star({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string 
   );
 }
 
-export default function PersonNode({ node, isRoot, onSelect }: Props) {
+export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) {
   const colorKey = Math.min(node.generation, 4);
   const genColor = GENERATION_COLORS[colorKey] ?? GENERATION_COLORS[4];
   const genLabel = GENERATION_LABELS[colorKey] ?? 'Ancestor';
@@ -82,7 +83,7 @@ export default function PersonNode({ node, isRoot, onSelect }: Props) {
         padding: '10px 12px',
       }}
     >
-      {/* Top row: star + label */}
+      {/* Top row: star + label + (optional) notes indicator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, minHeight: 8 }}>
         <Star size={7} color={isRoot ? '#ffffff' : '#0a0a0a'} />
         {showLabel && labelText && (
@@ -96,6 +97,35 @@ export default function PersonNode({ node, isRoot, onSelect }: Props) {
             lineHeight: 1,
           }}>
             {labelText}
+          </span>
+        )}
+        {hasNotes && (
+          <span
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              padding: '0 5px',
+              height: 11,
+              border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
+              borderRadius: 999,
+            }}
+            aria-label="Has notes"
+          >
+            {[0, 1, 2].map(i => (
+              <span
+                key={i}
+                style={{
+                  width: 2,
+                  height: 2,
+                  borderRadius: '50%',
+                  background: isRoot ? 'rgba(255,255,255,0.55)' : '#999999',
+                  display: 'block',
+                }}
+              />
+            ))}
           </span>
         )}
       </div>

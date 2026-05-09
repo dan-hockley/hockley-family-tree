@@ -501,14 +501,22 @@ export default function FamilyTree({ persons, details }: Props) {
             </svg>
 
             <AnimatePresence>
-              {layout.nodes.map(node => (
-                <PersonNode
-                  key={node.id}
-                  node={node}
-                  isRoot={node.id === rootId}
-                  onSelect={handleNodeClick}
-                />
-              ))}
+              {layout.nodes.map(node => {
+                const d = details.get(node.id);
+                const hasNotes = !!d && (
+                  d.notes.length > 0 ||
+                  d.events.some(e => (e.notes && e.notes.length > 0) || (e.description && e.description.length > 28))
+                );
+                return (
+                  <PersonNode
+                    key={node.id}
+                    node={node}
+                    isRoot={node.id === rootId}
+                    hasNotes={hasNotes}
+                    onSelect={handleNodeClick}
+                  />
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
