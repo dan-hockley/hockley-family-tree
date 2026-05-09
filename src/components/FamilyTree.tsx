@@ -522,7 +522,14 @@ export default function FamilyTree({ persons, details }: Props) {
               }}
               overflow="visible"
             >
-              {layout.edges.map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
+              {/* Render non-patrilineal edges first */}
+              {layout.edges
+                .filter(e => !patrilinealEdges.has(`${e.childId}|${e.parentId}`))
+                .map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
+              {/* Patrilineal chain on top */}
+              {layout.edges
+                .filter(e => patrilinealEdges.has(`${e.childId}|${e.parentId}`))
+                .map(edge => renderEdge(edge, nodeMap, patrilinealEdges))}
             </svg>
 
             <AnimatePresence>
