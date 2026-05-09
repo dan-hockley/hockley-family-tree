@@ -95,7 +95,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
           : (hovered ? `1px solid ${fillBg}` : '1px solid #d8d8d8'),
         borderRadius: 0,
         padding: '10px 12px',
-        filter: 'drop-shadow(0 0 30px #dddddd)',
+        filter: 'drop-shadow(0 0 30px #cccccc)',
         transition: 'background 0.12s, border-color 0.12s',
       }}
     >
