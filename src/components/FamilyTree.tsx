@@ -511,6 +511,7 @@ export default function FamilyTree({ persons, details }: Props) {
                     isRoot={node.id === rootId}
                     hasNotes={hasNotes}
                     onSelect={handleNodeClick}
+                    onOpenNotes={id => setSidebarId(id)}
                   />
                 );
               })}

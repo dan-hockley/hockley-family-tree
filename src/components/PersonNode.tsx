@@ -7,6 +7,7 @@ interface Props {
   isRoot: boolean;
   hasNotes?: boolean;
   onSelect: (id: string) => void;
+  onOpenNotes?: (id: string) => void;
 }
 
 const GENERATION_COLORS: Record<number, string> = {
@@ -41,7 +42,7 @@ function Star({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string 
   );
 }
 
-export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) {
+export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNotes }: Props) {
   const colorKey = Math.min(node.generation, 4);
   const genColor = GENERATION_COLORS[colorKey] ?? GENERATION_COLORS[4];
   const genLabel = GENERATION_LABELS[colorKey] ?? 'Ancestor';
@@ -100,7 +101,13 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) 
           </span>
         )}
         {hasNotes && (
-          <span
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              onOpenNotes?.(node.id);
+            }}
+            onMouseDown={e => e.stopPropagation()}
+            aria-label="View notes"
             style={{
               marginLeft: 'auto',
               display: 'inline-flex',
@@ -111,8 +118,9 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) 
               height: 9,
               border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
               borderRadius: 3,
+              background: 'transparent',
+              cursor: 'pointer',
             }}
-            aria-label="Has notes"
           >
             {[0, 1, 2].map(i => (
               <span
@@ -126,7 +134,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) 
                 }}
               />
             ))}
-          </span>
+          </button>
         )}
       </div>
 
