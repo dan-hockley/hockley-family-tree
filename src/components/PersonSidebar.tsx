@@ -207,7 +207,7 @@ export default function PersonSidebar({
               width: sidebarWidth,
               maxWidth: '100vw',
               background: '#ffffff',
-              borderLeft: isMobile ? 'none' : '2px solid #0a0a0a',
+              borderLeft: 'none',
               zIndex: 30,
               display: 'flex',
               flexDirection: 'column',
