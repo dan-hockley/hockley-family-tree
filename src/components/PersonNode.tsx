@@ -111,11 +111,12 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
             style={{
               marginLeft: 'auto',
               display: 'inline-flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 1.5,
               padding: '0 4px',
-              height: 9,
+              height: 11,
               border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
               borderRadius: 3,
               background: 'transparent',
@@ -126,9 +127,8 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
               <span
                 key={i}
                 style={{
-                  width: 2,
-                  height: 2,
-                  borderRadius: '50%',
+                  width: 6,
+                  height: 1,
                   background: isRoot ? 'rgba(255,255,255,0.55)' : '#999999',
                   display: 'block',
                 }}
