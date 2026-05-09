@@ -95,12 +95,12 @@ function DataRow({
         </div>
         <div style={{
           fontFamily: "'Inter', sans-serif",
-          fontSize: 11,
+          fontSize: 14,
           fontWeight: 400,
           fontStyle: 'normal',
-          color: '#444444',
+          color: '#333333',
           textAlign: 'left',
-          lineHeight: 1.6,
+          lineHeight: 1.55,
         }}>
           {children}
         </div>
