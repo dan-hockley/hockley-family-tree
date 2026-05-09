@@ -503,10 +503,7 @@ export default function FamilyTree({ persons, details }: Props) {
             <AnimatePresence>
               {layout.nodes.map(node => {
                 const d = details.get(node.id);
-                const hasNotes = !!d && (
-                  d.notes.length > 0 ||
-                  d.events.some(e => (e.notes && e.notes.length > 0) || (e.description && e.description.length > 28))
-                );
+                const hasNotes = !!d && d.notes.length > 0;
                 return (
                   <PersonNode
                     key={node.id}

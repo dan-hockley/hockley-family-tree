@@ -106,11 +106,11 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect }: Props) 
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 2,
-              padding: '0 5px',
-              height: 11,
+              gap: 1.5,
+              padding: '0 4px',
+              height: 9,
               border: `1px solid ${isRoot ? 'rgba(255,255,255,0.35)' : '#bbbbbb'}`,
-              borderRadius: 999,
+              borderRadius: 3,
             }}
             aria-label="Has notes"
           >
