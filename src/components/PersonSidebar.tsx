@@ -7,6 +7,7 @@ interface Props {
   personMap: Map<string, Person>;
   onClose: () => void;
   onNavigate: (id: string) => void;
+  isMobile?: boolean;
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -24,67 +25,123 @@ function eventLabel(type: string, description?: string) {
 
 function Star() {
   return (
-    <svg width="8" height="8" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, display: 'inline-block' }}>
+    <svg width="8" height="8" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, display: 'block' }}>
       <path d="M10 0 L11.5 8.5 L20 10 L11.5 11.5 L10 20 L8.5 11.5 L0 10 L8.5 8.5 Z" fill="#ffffff" />
     </svg>
   );
 }
 
-function FamilyLink({ id, personMap, onNavigate }: { id: string; personMap: Map<string, Person>; onNavigate: (id: string) => void }) {
+function FamilyLink({
+  id,
+  personMap,
+  onNavigate,
+  fontSize,
+}: {
+  id: string;
+  personMap: Map<string, Person>;
+  onNavigate: (id: string) => void;
+  fontSize: number;
+}) {
   const p = personMap.get(id);
   if (!p) return null;
   return (
     <button
       onClick={() => onNavigate(id)}
+      className="family-link"
       style={{
         fontFamily: "'Inter', sans-serif",
-        fontSize: 20,
+        fontSize,
         fontWeight: 600,
         color: '#0a0a0a',
         background: 'none',
         border: 'none',
         padding: 0,
         cursor: 'pointer',
-        textAlign: 'left',
-        textDecoration: 'underline',
-        textDecorationColor: '#d8d8d8',
-        textUnderlineOffset: 3,
+        textAlign: 'right',
       }}
-      onMouseEnter={e => (e.currentTarget.style.textDecorationColor = '#0a0a0a')}
-      onMouseLeave={e => (e.currentTarget.style.textDecorationColor = '#d8d8d8')}
     >
       {p.name}
     </button>
   );
 }
 
-// Label + value row with bottom rule — like the "Place / WETZLAR, GERMANY +" rows in the reference
-function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DataRow({
+  label,
+  children,
+  valueSize,
+}: {
+  label: string;
+  children: React.ReactNode;
+  valueSize: number;
+}) {
   return (
-    <div style={{ borderBottom: '1px solid #ececec', padding: '9px 0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#aaaaaa', flexShrink: 0 }}>
+    <div style={{
+      borderBottom: '1px solid #ececec',
+      padding: '10px 0',
+      display: 'flex',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: 12,
+    }}>
+      <span style={{
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 8,
+        fontWeight: 700,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        color: '#aaaaaa',
+        flexShrink: 0,
+      }}>
         {label}
       </span>
-      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 600, color: '#0a0a0a', textAlign: 'right' }}>
+      <span style={{
+        fontFamily: "'Inter', sans-serif",
+        fontSize: valueSize,
+        fontWeight: 600,
+        color: '#0a0a0a',
+        textAlign: 'right',
+        minWidth: 0,
+      }}>
         {children}
       </span>
     </div>
   );
 }
 
-export default function PersonSidebar({ person, detail, personMap, onClose, onNavigate }: Props) {
+export default function PersonSidebar({
+  person,
+  detail,
+  personMap,
+  onClose,
+  onNavigate,
+  isMobile = false,
+}: Props) {
+  const sidebarWidth = isMobile ? '100%' : 380;
+  const headerNameSize = isMobile ? 32 : 44;
+  const valueSize = isMobile ? 16 : 18;
+  const linkSize = isMobile ? 16 : 20;
+
   return (
     <AnimatePresence>
       {person && (
         <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-20"
-            onClick={onClose}
-          />
+          {/* Backdrop — fades in on desktop, hidden on mobile (sidebar fills screen) */}
+          {!isMobile && (
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={onClose}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.2)',
+                zIndex: 20,
+              }}
+            />
+          )}
 
           <motion.aside
             key="sidebar"
@@ -96,14 +153,16 @@ export default function PersonSidebar({ person, detail, personMap, onClose, onNa
               position: 'fixed',
               top: 0,
               right: 0,
-              height: '100%',
-              width: 380,
+              height: '100dvh',
+              width: sidebarWidth,
+              maxWidth: '100vw',
               background: '#ffffff',
-              borderLeft: '2px solid #0a0a0a',
+              borderLeft: isMobile ? 'none' : '2px solid #0a0a0a',
               zIndex: 30,
               display: 'flex',
               flexDirection: 'column',
               fontFamily: "'Inter', sans-serif",
+              boxShadow: isMobile ? 'none' : '-12px 0 32px rgba(0,0,0,0.08)',
             }}
           >
             {/* Header — black band */}
@@ -111,111 +170,136 @@ export default function PersonSidebar({ person, detail, personMap, onClose, onNa
               style={{
                 background: '#0a0a0a',
                 borderBottom: '1px solid #1a1a1a',
-                padding: '20px 20px 18px',
+                padding: isMobile ? '16px 16px 14px' : '20px 20px 18px',
                 flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Star + label */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <Star />
-                    <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+                    <span style={{
+                      fontSize: 7,
+                      fontWeight: 700,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.4)',
+                    }}>
                       Biography
                     </span>
                   </div>
                   <h2 style={{
                     fontFamily: "'Inter', sans-serif",
-                    fontSize: 44,
+                    fontSize: headerNameSize,
                     fontWeight: 800,
                     color: '#ffffff',
                     margin: 0,
                     lineHeight: 1.0,
                     letterSpacing: '-0.03em',
+                    wordBreak: 'break-word',
                   }}>
                     {person.name}
                   </h2>
                 </div>
                 <button
                   onClick={onClose}
+                  className="close-btn"
+                  aria-label="Close"
                   style={{
                     color: 'rgba(255,255,255,0.4)',
                     background: 'none',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    fontSize: 12,
+                    fontSize: 16,
                     fontWeight: 700,
                     cursor: 'pointer',
                     lineHeight: 1,
-                    padding: '5px 8px',
+                    width: isMobile ? 36 : 30,
+                    height: isMobile ? 36 : 30,
                     flexShrink: 0,
-                    letterSpacing: '0.06em',
-                    marginLeft: 12,
-                    marginTop: 2,
                     fontFamily: "'Inter', sans-serif",
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
                   }}
-                  onMouseEnter={e => { (e.currentTarget.style.color = '#ffffff'); (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'); }}
-                  onMouseLeave={e => { (e.currentTarget.style.color = 'rgba(255,255,255,0.4)'); (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'); }}
                 >
                   ×
                 </button>
               </div>
             </div>
 
-            {/* Body — single flat list, one rule style only */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 24px' }}>
+            {/* Body — single ruled list */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: isMobile ? '0 16px 24px' : '0 20px 24px',
+              WebkitOverflowScrolling: 'touch',
+            }}>
               <div style={{ marginTop: 8 }}>
-
                 {person.birthDate && (
-                  <DataRow label="Born">
+                  <DataRow label="Born" valueSize={valueSize}>
                     <span>{person.birthDate}</span>
-                    {person.birthPlace && <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 1 }}>{person.birthPlace}</span>}
+                    {person.birthPlace && (
+                      <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 2, fontWeight: 400 }}>
+                        {person.birthPlace}
+                      </span>
+                    )}
                   </DataRow>
                 )}
                 {person.deathDate && (
-                  <DataRow label="Died">
+                  <DataRow label="Died" valueSize={valueSize}>
                     <span>{person.deathDate}</span>
-                    {person.deathPlace && <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 1 }}>{person.deathPlace}</span>}
+                    {person.deathPlace && (
+                      <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 2, fontWeight: 400 }}>
+                        {person.deathPlace}
+                      </span>
+                    )}
                   </DataRow>
                 )}
                 {person.fatherIds.map(id => (
-                  <DataRow key={id} label="Father">
-                    <FamilyLink id={id} personMap={personMap} onNavigate={id => { onClose(); onNavigate(id); }} />
+                  <DataRow key={`f-${id}`} label="Father" valueSize={valueSize}>
+                    <FamilyLink id={id} personMap={personMap} onNavigate={(id) => { onClose(); onNavigate(id); }} fontSize={linkSize} />
                   </DataRow>
                 ))}
                 {person.motherIds.map(id => (
-                  <DataRow key={id} label="Mother">
-                    <FamilyLink id={id} personMap={personMap} onNavigate={id => { onClose(); onNavigate(id); }} />
+                  <DataRow key={`m-${id}`} label="Mother" valueSize={valueSize}>
+                    <FamilyLink id={id} personMap={personMap} onNavigate={(id) => { onClose(); onNavigate(id); }} fontSize={linkSize} />
                   </DataRow>
                 ))}
                 {person.spouseIds.map(id => (
-                  <DataRow key={id} label="Spouse">
-                    <FamilyLink id={id} personMap={personMap} onNavigate={id => { onClose(); onNavigate(id); }} />
+                  <DataRow key={`s-${id}`} label="Spouse" valueSize={valueSize}>
+                    <FamilyLink id={id} personMap={personMap} onNavigate={(id) => { onClose(); onNavigate(id); }} fontSize={linkSize} />
                   </DataRow>
                 ))}
                 {person.childIds.length > 0 && (
-                  <DataRow label="Children">
+                  <DataRow label="Children" valueSize={valueSize}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
                       {person.childIds.map(id => (
-                        <FamilyLink key={id} id={id} personMap={personMap} onNavigate={id => { onClose(); onNavigate(id); }} />
+                        <FamilyLink key={id} id={id} personMap={personMap} onNavigate={(id) => { onClose(); onNavigate(id); }} fontSize={linkSize} />
                       ))}
                     </div>
                   </DataRow>
                 )}
                 {detail && detail.events.map((ev, i) => (
-                  <DataRow key={i} label={eventLabel(ev.type, ev.description)}>
+                  <DataRow key={`e-${i}`} label={eventLabel(ev.type, ev.description)} valueSize={valueSize}>
                     <span>{ev.date ?? ''}</span>
-                    {ev.place && <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 1 }}>{ev.place}</span>}
+                    {ev.place && (
+                      <span style={{ display: 'block', fontSize: 10, color: '#aaaaaa', marginTop: 2, fontWeight: 400 }}>
+                        {ev.place}
+                      </span>
+                    )}
                     {ev.notes?.map((n, j) => (
-                      <span key={j} style={{ display: 'block', fontSize: 10, color: '#888888', fontStyle: 'italic', marginTop: 2 }}>{n}</span>
+                      <span key={j} style={{ display: 'block', fontSize: 10, color: '#888888', fontStyle: 'italic', marginTop: 2, fontWeight: 400 }}>
+                        {n}
+                      </span>
                     ))}
                   </DataRow>
                 ))}
                 {detail && detail.notes.map((n, i) => (
-                  <DataRow key={i} label="Note">
-                    <span style={{ fontStyle: 'italic', color: '#555555' }}>{n}</span>
+                  <DataRow key={`n-${i}`} label="Note" valueSize={valueSize}>
+                    <span style={{ fontStyle: 'italic', color: '#555555', fontWeight: 400 }}>{n}</span>
                   </DataRow>
                 ))}
-
               </div>
             </div>
           </motion.aside>

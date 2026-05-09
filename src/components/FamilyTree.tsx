@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { Person, PersonDetail } from '../types';
 import { buildPedigree, NODE_W, NODE_H, type PedigreeEdge } from '../lib/pedigree';
+import { useViewport } from '../lib/useViewport';
 import PersonNode from './PersonNode';
 import PersonSidebar from './PersonSidebar';
 
@@ -10,7 +11,8 @@ interface Props {
   details: Map<string, PersonDetail>;
 }
 
-const r = 10; // corner radius for all connector elbows
+const r = 10; // corner radius for connector elbows
+const CANVAS_MARGIN = 40;
 
 function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string }) {
   return (
@@ -20,10 +22,7 @@ function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: str
   );
 }
 
-function ancestorPath(
-  cx: number, cy: number, // child top-center
-  px: number, py: number  // parent bottom-center
-): string {
+function ancestorPath(cx: number, cy: number, px: number, py: number): string {
   const midY = (cy + py) / 2;
   const dx = px - cx;
   if (Math.abs(dx) < 1) return `M ${cx} ${cy} L ${px} ${py}`;
@@ -38,11 +37,7 @@ function ancestorPath(
   ].join(' ');
 }
 
-function childPath(
-  px: number, py: number, // parent (root) bottom-center
-  cx: number, cy: number  // child top-center
-): string {
-  // Downward — mirror of ancestorPath
+function childPath(px: number, py: number, cx: number, cy: number): string {
   const midY = (py + cy) / 2;
   const dx = cx - px;
   if (Math.abs(dx) < 1) return `M ${px} ${py} L ${cx} ${cy}`;
@@ -128,6 +123,7 @@ function renderEdge(edge: PedigreeEdge, nodeMap: Map<string, { x: number; y: num
 
 export default function FamilyTree({ persons, details }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
+  const { isMobile } = useViewport();
 
   const defaultRoot = useMemo(() => {
     const daniel = persons.find(p =>
@@ -141,6 +137,7 @@ export default function FamilyTree({ persons, details }: Props) {
   const [sidebarId, setSidebarId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false); // mobile: toggle search overlay
   const containerRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<string[]>([]);
 
@@ -149,7 +146,6 @@ export default function FamilyTree({ persons, details }: Props) {
     return buildPedigree(rootId, personMap, 5);
   }, [rootId, personMap]);
 
-  // Node position map for edge rendering
   const nodeMap = useMemo(() => {
     const m = new Map<string, { x: number; y: number }>();
     layout?.nodes.forEach(n => m.set(n.id, { x: n.x, y: n.y }));
@@ -160,6 +156,9 @@ export default function FamilyTree({ persons, details }: Props) {
     setSidebarId(null);
     setHistory(h => [...h, rootId]);
     setRootId(id);
+    setSearch('');
+    setShowSearch(false);
+    setSearchOpen(false);
   }
 
   function navigateBack() {
@@ -178,17 +177,21 @@ export default function FamilyTree({ persons, details }: Props) {
     }
   }
 
+  // Center the root node in the viewport whenever it changes
   useEffect(() => {
     if (containerRef.current && layout) {
       const el = containerRef.current;
       const rootNode = layout.nodes.find(n => n.id === rootId);
       if (rootNode) {
-        // Center the root node in the viewport (nodes have 40px canvas margin)
-        const nodeLeft = rootNode.x + 40;
-        const nodeTop = rootNode.y + 40;
+        const nodeLeft = rootNode.x + CANVAS_MARGIN;
+        const nodeTop = rootNode.y + CANVAS_MARGIN;
         const scrollX = nodeLeft - (el.clientWidth - NODE_W) / 2;
         const scrollY = nodeTop - (el.clientHeight - NODE_H) / 2;
-        el.scrollTo({ left: Math.max(0, scrollX), top: Math.max(0, scrollY), behavior: 'smooth' });
+        el.scrollTo({
+          left: Math.max(0, scrollX),
+          top: Math.max(0, scrollY),
+          behavior: 'smooth',
+        });
       }
     }
   }, [rootId, layout]);
@@ -201,97 +204,57 @@ export default function FamilyTree({ persons, details }: Props) {
 
   const rootPerson = personMap.get(rootId);
 
-  return (
-    <div className="flex flex-col h-screen" style={{ background: '#ffffff', color: '#0a0a0a', fontFamily: "'Inter', sans-serif" }}>
+  const headerHeight = isMobile ? 44 : 48;
 
-      {/* Header — black bar */}
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      background: '#ffffff',
+      color: '#0a0a0a',
+      fontFamily: "'Inter', sans-serif",
+    }}>
+
+      {/* Header */}
       <header
-        className="flex items-center gap-8 px-6 shrink-0"
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? 8 : 24,
+          paddingLeft: isMobile ? 12 : 24,
+          paddingRight: isMobile ? 8 : 24,
+          flexShrink: 0,
           background: '#0a0a0a',
           borderBottom: '1px solid #222222',
-          height: 48,
+          height: headerHeight,
         }}
       >
-        {/* Star + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <StarMark size={15} color="#ffffff" />
+        {/* Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <StarMark size={isMobile ? 12 : 15} color="#ffffff" />
           <span style={{
             fontFamily: "'Inter', sans-serif",
             fontWeight: 800,
-            fontSize: 25,
+            fontSize: isMobile ? 17 : 25,
             letterSpacing: '-0.03em',
             color: '#ffffff',
             lineHeight: 1,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}>
-            Hockley Family Tree
+            {isMobile ? 'Hockley' : 'Hockley Family Tree'}
           </span>
         </div>
 
         <div style={{ flex: 1 }} />
 
-        {/* Search */}
-        <div className="relative">
-          <input
-            style={{
-              background: '#1a1a1a',
-              color: '#ffffff',
-              fontSize: 9,
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              borderRadius: 0,
-              padding: '5px 10px',
-              width: 190,
-              border: '1px solid #333333',
-              outline: 'none',
-              fontFamily: "'Inter', sans-serif",
-            }}
-            placeholder="Search People"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setShowSearch(true); }}
-            onFocus={e => { setShowSearch(true); (e.target as HTMLInputElement).style.borderColor = '#666666'; }}
-            onBlur={e => { setTimeout(() => setShowSearch(false), 200); (e.target as HTMLInputElement).style.borderColor = '#333333'; }}
-          />
-          {showSearch && searchResults.length > 0 && (
-            <div
-              className="absolute right-0 top-full z-50 w-72 overflow-hidden"
-              style={{
-                background: '#ffffff',
-                border: '1px solid #d8d8d8',
-                borderRadius: 0,
-                marginTop: 2,
-              }}
-            >
-              {searchResults.map((p, i) => (
-                <button
-                  key={p.id}
-                  className="w-full text-left"
-                  style={{
-                    padding: '10px 14px',
-                    borderBottom: i < searchResults.length - 1 ? '1px solid #ececec' : 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'baseline',
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f5')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => { navigateTo(p.id); setSearch(''); setShowSearch(false); }}
-                >
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#0a0a0a' }}>{p.name}</span>
-                  <span style={{ fontSize: 9, color: '#aaaaaa', letterSpacing: '0.08em' }}>{p.birthDate?.match(/\d{4}/)?.[0] ?? ''}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
+        {/* Back button */}
         {history.length > 0 && (
           <button
             onClick={navigateBack}
+            className="back-btn"
             style={{
               fontSize: 8,
               fontWeight: 700,
@@ -301,42 +264,202 @@ export default function FamilyTree({ persons, details }: Props) {
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              padding: '5px 12px',
+              padding: isMobile ? '8px 10px' : '5px 12px',
               border: '1px solid #333333',
               background: 'transparent',
               cursor: 'pointer',
               fontFamily: "'Inter', sans-serif",
               borderRadius: 0,
+              minHeight: isMobile ? 36 : undefined,
             }}
-            onMouseEnter={e => { (e.currentTarget.style.background = '#ffffff'); (e.currentTarget.style.color = '#0a0a0a'); (e.currentTarget.style.borderColor = '#ffffff'); }}
-            onMouseLeave={e => { (e.currentTarget.style.background = 'transparent'); (e.currentTarget.style.color = '#aaaaaa'); (e.currentTarget.style.borderColor = '#333333'); }}
           >
             ← Back
           </button>
         )}
+
+        {/* Desktop: inline search. Mobile: icon toggle */}
+        {isMobile ? (
+          <button
+            onClick={() => setSearchOpen(o => !o)}
+            aria-label="Search"
+            style={{
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid #333333',
+              background: searchOpen ? '#ffffff' : 'transparent',
+              color: searchOpen ? '#0a0a0a' : '#aaaaaa',
+              cursor: 'pointer',
+              borderRadius: 0,
+              padding: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20 L16 16" />
+            </svg>
+          </button>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{
+                background: '#1a1a1a',
+                color: '#ffffff',
+                fontSize: 9,
+                fontWeight: 600,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                borderRadius: 0,
+                padding: '5px 10px',
+                width: 190,
+                border: '1px solid #333333',
+                outline: 'none',
+                fontFamily: "'Inter', sans-serif",
+              }}
+              placeholder="Search People"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowSearch(true); }}
+              onFocus={e => { setShowSearch(true); (e.target as HTMLInputElement).style.borderColor = '#666666'; }}
+              onBlur={e => { setTimeout(() => setShowSearch(false), 200); (e.target as HTMLInputElement).style.borderColor = '#333333'; }}
+            />
+            {showSearch && searchResults.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  zIndex: 50,
+                  width: 288,
+                  overflow: 'hidden',
+                  background: '#ffffff',
+                  border: '1px solid #d8d8d8',
+                  borderRadius: 0,
+                  marginTop: 2,
+                }}
+              >
+                {searchResults.map((p, i) => (
+                  <button
+                    key={p.id}
+                    className="search-row"
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 14px',
+                      borderBottom: i < searchResults.length - 1 ? '1px solid #ececec' : 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      fontFamily: "'Inter', sans-serif",
+                      border: 'none',
+                    }}
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => navigateTo(p.id)}
+                  >
+                    <span style={{ fontSize: 14, color: '#0a0a0a' }}>{p.name}</span>
+                    <span style={{ fontSize: 9, color: '#aaaaaa', letterSpacing: '0.08em' }}>{p.birthDate?.match(/\d{4}/)?.[0] ?? ''}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
-      {/* Breadcrumb — label/value row like the reference */}
-      {rootPerson && (
+      {/* Mobile search overlay */}
+      {isMobile && searchOpen && (
+        <div style={{
+          background: '#0a0a0a',
+          borderBottom: '1px solid #222222',
+          padding: 10,
+          flexShrink: 0,
+        }}>
+          <input
+            autoFocus
+            style={{
+              width: '100%',
+              background: '#1a1a1a',
+              color: '#ffffff',
+              fontSize: 12,
+              fontWeight: 500,
+              padding: '10px 12px',
+              border: '1px solid #333333',
+              borderRadius: 0,
+              outline: 'none',
+              fontFamily: "'Inter', sans-serif",
+            }}
+            placeholder="Search people..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {searchResults.length > 0 && (
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #d8d8d8',
+              marginTop: 8,
+              maxHeight: '50dvh',
+              overflowY: 'auto',
+            }}>
+              {searchResults.map((p, i) => (
+                <button
+                  key={p.id}
+                  className="search-row"
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '12px 14px',
+                    borderBottom: i < searchResults.length - 1 ? '1px solid #ececec' : 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    fontFamily: "'Inter', sans-serif",
+                    border: 'none',
+                  }}
+                  onClick={() => navigateTo(p.id)}
+                >
+                  <span style={{ fontSize: 14, color: '#0a0a0a' }}>{p.name}</span>
+                  <span style={{ fontSize: 10, color: '#aaaaaa', letterSpacing: '0.08em' }}>{p.birthDate?.match(/\d{4}/)?.[0] ?? ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Breadcrumb */}
+      {rootPerson && !searchOpen && (
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '6px 24px',
+            padding: isMobile ? '6px 12px' : '6px 24px',
             borderBottom: '1px solid #e8e8e8',
             background: '#ffffff',
+            flexShrink: 0,
           }}
         >
           <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#bbbbbb' }}>
             Viewing
           </span>
-          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#0a0a0a' }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 14,
+              color: '#0a0a0a',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
               {rootPerson.name}
             </span>
             {rootPerson.birthDate && (
-              <span style={{ fontSize: 9, color: '#aaaaaa', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: 9, color: '#aaaaaa', letterSpacing: '0.06em', flexShrink: 0 }}>
                 {rootPerson.birthDate.match(/\d{4}/)?.[0]}
               </span>
             )}
@@ -347,17 +470,31 @@ export default function FamilyTree({ persons, details }: Props) {
       {/* Tree canvas */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto"
-        style={{ background: '#ffffff' }}
+        className="tree-canvas"
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          background: '#ffffff',
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {layout && (
           <div
-            className="relative"
-            style={{ width: layout.width + 80, height: layout.height + 80, margin: '40px' }}
+            style={{
+              position: 'relative',
+              width: layout.width + CANVAS_MARGIN * 2,
+              height: layout.height + CANVAS_MARGIN * 2,
+              margin: CANVAS_MARGIN,
+            }}
           >
             <svg
-              className="absolute inset-0 pointer-events-none"
-              style={{ width: layout.width + 80, height: layout.height + 80 }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                width: layout.width + CANVAS_MARGIN * 2,
+                height: layout.height + CANVAS_MARGIN * 2,
+              }}
               overflow="visible"
             >
               {layout.edges.map(edge => renderEdge(edge, nodeMap))}
@@ -377,7 +514,16 @@ export default function FamilyTree({ persons, details }: Props) {
         )}
 
         {!layout && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 11, color: '#aaaaaa', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            fontSize: 11,
+            color: '#aaaaaa',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}>
             No data
           </div>
         )}
@@ -389,45 +535,56 @@ export default function FamilyTree({ persons, details }: Props) {
         personMap={personMap}
         onClose={() => setSidebarId(null)}
         onNavigate={navigateTo}
+        isMobile={isMobile}
       />
 
-      {/* Footer — black bar, star mark, generation legend as label rows */}
-      <footer
-        style={{
-          borderTop: '2px solid #0a0a0a',
-          background: '#0a0a0a',
-          padding: '0 24px',
-          height: 36,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          gap: 20,
-          lineHeight: 1,
-        }}
-      >
-        <StarMark size={8} color="#ffffff" />
-        {[
-          { label: 'Parents',          color: '#0047ff' },
-          { label: 'Grandparents',     color: '#8800ff' },
-          { label: 'Gt. Grandparents', color: '#00ccff' },
-          { label: 'Further',          color: '#ff6600' },
-          { label: 'Children',         color: '#00cc44' },
-        ].map(({ label, color }) => (
-          <span key={label} style={{
+      {/* Footer — desktop only (legend is decorative noise on mobile) */}
+      {!isMobile && (
+        <footer
+          style={{
+            borderTop: '2px solid #0a0a0a',
+            background: '#0a0a0a',
+            padding: '0 24px',
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 20,
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+        >
+          <StarMark size={8} color="#ffffff" />
+          {[
+            { label: 'Parents',          color: '#0047ff' },
+            { label: 'Grandparents',     color: '#8800ff' },
+            { label: 'Gt. Grandparents', color: '#00ccff' },
+            { label: 'Further',          color: '#ff6600' },
+            { label: 'Children',         color: '#00cc44' },
+          ].map(({ label, color }) => (
+            <span key={label} style={{
+              fontSize: 7,
+              fontWeight: 800,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color,
+              fontFamily: "'Inter', sans-serif",
+            }}>
+              {label}
+            </span>
+          ))}
+          <span style={{
+            marginLeft: 'auto',
             fontSize: 7,
-            fontWeight: 800,
+            fontWeight: 600,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color,
+            color: '#444444',
             fontFamily: "'Inter', sans-serif",
           }}>
-            {label}
+            Click to navigate
           </span>
-        ))}
-        <span style={{ marginLeft: 'auto', fontSize: 7, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444444', fontFamily: "'Inter', sans-serif" }}>
-          Click to navigate
-        </span>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

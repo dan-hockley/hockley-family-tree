@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import type { TreeNode } from '../types';
+import { NODE_W } from '../lib/pedigree';
 
 interface Props {
   node: TreeNode;
@@ -31,25 +32,32 @@ function formatYear(date: string | undefined): string | null {
   return m ? m[0] : null;
 }
 
-// 4-pointed star SVG mark
 function Star({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-      <path
-        d="M10 0 L11.5 8.5 L20 10 L11.5 11.5 L10 20 L8.5 11.5 L0 10 L8.5 8.5 Z"
-        fill={color}
-      />
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, display: 'block' }}>
+      <path d="M10 0 L11.5 8.5 L20 10 L11.5 11.5 L10 20 L8.5 11.5 L0 10 L8.5 8.5 Z" fill={color} />
     </svg>
   );
 }
 
 export default function PersonNode({ node, isRoot, onSelect }: Props) {
   const colorKey = Math.min(node.generation, 4);
-  const genColor = GENERATION_COLORS[colorKey] ?? '#d41ad4';
+  const genColor = GENERATION_COLORS[colorKey] ?? GENERATION_COLORS[4];
   const genLabel = GENERATION_LABELS[colorKey] ?? 'Ancestor';
   const birthYear = formatYear(node.birthDate);
   const deathYear = formatYear(node.deathDate);
   const lifespan = birthYear ? (deathYear ? `${birthYear}–${deathYear}` : `b. ${birthYear}`) : null;
+
+  const showLabel = node.generation !== 0 || node.role === 'sibling' || node.role === 'spouse';
+  let labelText: string | null = null;
+  let labelColor = '#aaaaaa';
+  if (node.generation === 0) {
+    if (node.role === 'sibling') labelText = 'Sibling';
+    else if (node.role === 'spouse') labelText = 'Spouse';
+  } else {
+    labelText = genLabel;
+    labelColor = genColor;
+  }
 
   return (
     <motion.div
@@ -59,102 +67,84 @@ export default function PersonNode({ node, isRoot, onSelect }: Props) {
       exit={{ opacity: 0, y: 6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       onClick={() => onSelect(node.id)}
-      className="absolute cursor-pointer select-none"
-      style={{ width: 210, left: node.x, top: node.y }}
+      className={`person-card ${isRoot ? 'is-root' : ''}`}
+      style={{
+        position: 'absolute',
+        cursor: 'pointer',
+        userSelect: 'none',
+        width: NODE_W,
+        left: node.x,
+        top: node.y,
+        background: isRoot ? '#0a0a0a' : '#ffffff',
+        border: `1px solid ${isRoot ? '#0a0a0a' : '#d8d8d8'}`,
+        borderTop: isRoot ? '3px solid #0a0a0a' : '1px solid #d8d8d8',
+        borderRadius: 0,
+        padding: '10px 12px',
+      }}
     >
+      {/* Top row: star + label */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7, minHeight: 8 }}>
+        <Star size={7} color={isRoot ? '#ffffff' : '#0a0a0a'} />
+        {showLabel && labelText && (
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 8,
+            fontWeight: 800,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: labelColor,
+            lineHeight: 1,
+          }}>
+            {labelText}
+          </span>
+        )}
+      </div>
+
+      {/* Given name */}
       <div
         style={{
-          background: isRoot ? '#0a0a0a' : '#ffffff',
-          border: `1px solid ${isRoot ? '#0a0a0a' : '#d8d8d8'}`,
-          borderTop: isRoot ? '3px solid #0a0a0a' : '1px solid #d8d8d8',
-          borderRadius: 0,
-          padding: '10px 12px 10px',
-          transition: 'border-color 0.12s',
-        }}
-        onMouseEnter={e => {
-          if (!isRoot) (e.currentTarget as HTMLElement).style.borderColor = '#0a0a0a';
-        }}
-        onMouseLeave={e => {
-          if (!isRoot) (e.currentTarget as HTMLElement).style.borderColor = '#d8d8d8';
+          fontFamily: "'Inter', sans-serif",
+          fontWeight: 700,
+          fontSize: 22,
+          color: isRoot ? '#ffffff' : '#0a0a0a',
+          lineHeight: 1.1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          letterSpacing: '-0.02em',
         }}
       >
-        {/* Top row: star + label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 7 }}>
-          <Star size={7} color={isRoot ? '#ffffff' : '#0a0a0a'} />
-          {node.generation === 0 ? (
-            node.role === 'sibling' || node.role === 'spouse' ? (
-              <span style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: 8,
-                fontWeight: 800,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                color: '#aaaaaa',
-                lineHeight: 1,
-              }}>
-                {node.role === 'sibling' ? 'Sibling' : 'Spouse'}
-              </span>
-            ) : null
-          ) : (
-            <span style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 8,
-              fontWeight: 800,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: genColor,
-              lineHeight: 1,
-            }}>
-              {genLabel}
-            </span>
-          )}
-        </div>
+        {node.givenName || node.name}
+      </div>
 
-        {/* Given name */}
+      {/* Surname */}
+      {node.surname && (
         <div
           style={{
             fontFamily: "'Inter', sans-serif",
             fontWeight: 700,
-            fontSize: 22,
-            color: isRoot ? '#ffffff' : '#0a0a0a',
-            lineHeight: 1.1,
+            fontSize: 8,
+            color: isRoot ? 'rgba(255,255,255,0.55)' : '#888888',
+            lineHeight: 1.2,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            letterSpacing: '-0.02em',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            marginTop: 3,
           }}
         >
-          {node.givenName || node.name}
+          {node.surname}
         </div>
+      )}
 
-        {/* Surname — light tracked caps */}
-        {node.surname && (
-          <div
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontWeight: 300,
-              fontSize: 8,
-              color: isRoot ? 'rgba(255,255,255,0.55)' : '#888888',
-              lineHeight: 1.2,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              marginTop: 3,
-            }}
-          >
-            {node.surname}
-          </div>
-        )}
-
-        {/* Rule */}
-        {lifespan && (
-          <div style={{ borderTop: `1px solid ${isRoot ? 'rgba(255,255,255,0.15)' : '#ececec'}`, marginTop: 8 }} />
-        )}
-
-        {/* Date row — label + value like the reference */}
-        {lifespan && (
+      {/* Rule + date row */}
+      {lifespan && (
+        <>
+          <div style={{
+            borderTop: `1px solid ${isRoot ? 'rgba(255,255,255,0.15)' : '#ececec'}`,
+            marginTop: 8,
+          }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 6 }}>
             <span style={{
               fontFamily: "'Inter', sans-serif",
@@ -176,26 +166,26 @@ export default function PersonNode({ node, isRoot, onSelect }: Props) {
               {lifespan}
             </span>
           </div>
-        )}
+        </>
+      )}
 
-        {node.birthPlace && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-            <span style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: 7,
-              color: isRoot ? 'rgba(255,255,255,0.3)' : '#cccccc',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              maxWidth: 120,
-            }}>
-              {node.birthPlace.split(',').slice(-2).join(',').trim()}
-            </span>
-          </div>
-        )}
-      </div>
+      {node.birthPlace && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 7,
+            color: isRoot ? 'rgba(255,255,255,0.3)' : '#cccccc',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: 130,
+          }}>
+            {node.birthPlace.split(',').slice(-2).join(',').trim()}
+          </span>
+        </div>
+      )}
     </motion.div>
   );
 }

@@ -21,21 +21,67 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900 text-white">
-        <div className="text-center">
-          <div className="text-2xl mb-2">🌳</div>
-          <div className="text-slate-400 text-sm">Loading tree...</div>
-        </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100dvh',
+        background: '#ffffff',
+        fontFamily: "'Inter', sans-serif",
+      }}>
+        <span style={{
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          color: '#aaaaaa',
+        }}>
+          Loading
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900 text-red-400">
-        <div className="text-center max-w-md">
-          <div className="text-lg font-semibold mb-2">Failed to load GEDCOM</div>
-          <div className="text-sm font-mono bg-slate-800 p-3 rounded">{error}</div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100dvh',
+        background: '#ffffff',
+        padding: 24,
+        fontFamily: "'Inter', sans-serif",
+      }}>
+        <div style={{ maxWidth: 480, textAlign: 'center' }}>
+          <div style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: '#ff1a0e',
+            marginBottom: 8,
+          }}>
+            Error
+          </div>
+          <div style={{
+            fontSize: 14,
+            color: '#0a0a0a',
+            marginBottom: 12,
+          }}>
+            Failed to load family data.
+          </div>
+          <div style={{
+            fontSize: 11,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            color: '#888888',
+            background: '#f5f5f5',
+            padding: 12,
+            border: '1px solid #d8d8d8',
+            wordBreak: 'break-word',
+          }}>
+            {error}
+          </div>
         </div>
       </div>
     );
