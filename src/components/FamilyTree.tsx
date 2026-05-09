@@ -135,6 +135,7 @@ export default function FamilyTree({ persons, details }: Props) {
 
   const [rootId, setRootId] = useState<string>(defaultRoot);
   const [sidebarId, setSidebarId] = useState<string | null>(null);
+  const [scrollToNotesTick, setScrollToNotesTick] = useState(0);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false); // mobile: toggle search overlay
@@ -511,7 +512,10 @@ export default function FamilyTree({ persons, details }: Props) {
                     isRoot={node.id === rootId}
                     hasNotes={hasNotes}
                     onSelect={handleNodeClick}
-                    onOpenNotes={id => setSidebarId(id)}
+                    onOpenNotes={id => {
+                      setSidebarId(id);
+                      setScrollToNotesTick(t => t + 1);
+                    }}
                   />
                 );
               })}
@@ -542,6 +546,7 @@ export default function FamilyTree({ persons, details }: Props) {
         onClose={() => setSidebarId(null)}
         onNavigate={navigateTo}
         isMobile={isMobile}
+        scrollToNotes={scrollToNotesTick}
       />
 
       {/* Footer — desktop only (legend is decorative noise on mobile) */}

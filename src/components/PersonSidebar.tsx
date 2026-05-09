@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Person, PersonDetail } from '../types';
 
@@ -8,6 +9,7 @@ interface Props {
   onClose: () => void;
   onNavigate: (id: string) => void;
   isMobile?: boolean;
+  scrollToNotes?: number;
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -149,11 +151,24 @@ export default function PersonSidebar({
   onClose,
   onNavigate,
   isMobile = false,
+  scrollToNotes,
 }: Props) {
   const sidebarWidth = isMobile ? '100%' : 380;
   const headerNameSize = isMobile ? 32 : 44;
   const valueSize = isMobile ? 16 : 18;
   const linkSize = isMobile ? 16 : 20;
+  const notesAnchorRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (scrollToNotes && notesAnchorRef.current && scrollContainerRef.current) {
+      // Wait for sidebar slide-in to finish before scrolling
+      const t = setTimeout(() => {
+        notesAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 320);
+      return () => clearTimeout(t);
+    }
+  }, [scrollToNotes, person?.id]);
 
   return (
     <AnimatePresence>
@@ -263,7 +278,7 @@ export default function PersonSidebar({
             </div>
 
             {/* Body — single ruled list */}
-            <div style={{
+            <div ref={scrollContainerRef} style={{
               flex: 1,
               overflowY: 'auto',
               padding: isMobile ? '0 16px 24px' : '0 20px 24px',
@@ -352,6 +367,9 @@ export default function PersonSidebar({
                     </DataRow>
                   );
                 })}
+                {detail && detail.notes.length > 0 && (
+                  <div ref={notesAnchorRef} />
+                )}
                 {detail && detail.notes.map((n, i) => (
                   <DataRow key={`n-${i}`} label="Note" valueSize={valueSize} block>
                     {n}
