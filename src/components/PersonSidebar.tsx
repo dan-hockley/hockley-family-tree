@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Person, PersonDetail } from '../types';
+import { computeAge } from '../lib/age';
 
 interface Props {
   person: Person | null;
@@ -291,6 +292,15 @@ export default function PersonSidebar({
                     )}
                   </DataRow>
                 )}
+                {(() => {
+                  const age = computeAge(person);
+                  if (!age) return null;
+                  return (
+                    <DataRow label={age.isLiving ? 'Age' : 'Age at death'} valueSize={valueSize}>
+                      <span>{age.value}</span>
+                    </DataRow>
+                  );
+                })()}
                 {detail && detail.notes.map((n, i) => (
                   <DataRow key={`n-${i}`} label="Note" valueSize={valueSize} block>
                     {n}

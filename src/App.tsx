@@ -86,7 +86,14 @@ export default function App() {
   }, []);
 
   const navigateRoute = useCallback((newPath: string) => {
-    navigate(newPath);
+    // Timeline always opens on Daniel (the default root) regardless of which
+    // person was focal in the previous view. Tree and Biographies keep the
+    // current ?p= so the same person stays focal across those views.
+    if (newPath === '/timeline') {
+      navigate(newPath, { rootId: null });
+    } else {
+      navigate(newPath);
+    }
   }, [navigate]);
 
   // Title click — return to the tree centered on the default root (Daniel).

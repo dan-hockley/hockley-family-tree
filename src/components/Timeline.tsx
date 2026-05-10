@@ -92,33 +92,38 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
     stickyRegistry.current.clear();
   }, [rootId]);
 
-  // Force the canvas to start at the top on first mount. Re-pin to 0 across
-  // a few frames to beat browser scroll restoration / layout shifts from the
-  // breadcrumb appearing once data resolves.
+  // Center the root entry in the viewport on every root change. Use instant
+  // scroll on first mount (so the breadcrumb appearing or browser scroll
+  // restoration can't fight the centering), smooth thereafter. Re-pin across
+  // a couple of frames on first mount to beat layout shifts.
   const didInitialScroll = useRef(false);
   useEffect(() => {
     if (!containerRef.current || !layout) return;
     const el = containerRef.current;
-    if (!didInitialScroll.current) {
-      didInitialScroll.current = true;
-      const pinTop = () => {
-        el.scrollTop = 0;
-        el.scrollLeft = 0;
-      };
-      pinTop();
-      requestAnimationFrame(pinTop);
-      requestAnimationFrame(() => requestAnimationFrame(pinTop));
-      return;
-    }
     const rootEntry = layout.entries.find(e => e.person.id === rootId);
     if (!rootEntry) return;
     const midYear = (rootEntry.birthYear + rootEntry.deathYear) / 2;
+    const barCenterX = AXIS_WIDTH + 24 + rootEntry.lane * (laneWidth + LANE_GAP) + laneWidth / 2;
     const targetY = yForYear(midYear);
+    const targetTop = Math.max(0, targetY - el.clientHeight / 2);
+    const targetLeft = Math.max(0, barCenterX - el.clientWidth / 2);
+    if (!didInitialScroll.current) {
+      didInitialScroll.current = true;
+      const pin = () => {
+        el.scrollTop = targetTop;
+        el.scrollLeft = targetLeft;
+      };
+      pin();
+      requestAnimationFrame(pin);
+      requestAnimationFrame(() => requestAnimationFrame(pin));
+      return;
+    }
     el.scrollTo({
-      top: Math.max(0, targetY - el.clientHeight / 2),
+      top: targetTop,
+      left: targetLeft,
       behavior: 'smooth',
     });
-  }, [rootId, layout, pxPerYear]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rootId, layout, pxPerYear, laneWidth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Drive sticky offsets directly via DOM writes inside the scroll handler so
   // they track the scrollbar exactly, without any React re-render lag.
@@ -204,9 +209,9 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? 8 : 24,
-          paddingLeft: isMobile ? 12 : 24,
-          paddingRight: isMobile ? 8 : 24,
+          gap: isMobile ? 14 : 24,
+          paddingLeft: isMobile ? 14 : 24,
+          paddingRight: isMobile ? 10 : 24,
           flexShrink: 0,
           background: '#0a0a0a',
           borderBottom: '1px solid #222222',
@@ -237,7 +242,7 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
             fontSize: isMobile ? 17 : 25,
             letterSpacing: '-0.03em',
             color: '#ffffff',
-            lineHeight: 1,
+            lineHeight: 1.2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -764,7 +769,12 @@ function PersonBar({
       </div>
 
       {/* Lifespan + estimated marker */}
-      {height > 42 && (
+      {height > 42 && (() => {
+        const ageEnd = entry.living ? new Date().getFullYear() : entry.deathYear;
+        const ageValue = Math.max(0, ageEnd - entry.birthYear);
+        // Age is estimated if either anchor was estimated.
+        const ageEstimated = entry.birthEstimated || (!entry.living && entry.deathEstimated);
+        return (
         <div style={{
           marginTop: 'auto',
           display: 'flex',
@@ -782,6 +792,15 @@ function PersonBar({
             {' – '}
             {entry.living ? 'present' : `${entry.deathEstimated ? '~' : ''}${entry.deathYear}`}
           </div>
+          <div style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 7,
+            fontWeight: 500,
+            color: textColor,
+            letterSpacing: '0.04em',
+          }}>
+            a. {ageEstimated ? '~' : ''}{ageValue}
+          </div>
           {estimated && (
             <div style={{
               fontFamily: "'Inter', sans-serif",
@@ -796,7 +815,8 @@ function PersonBar({
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

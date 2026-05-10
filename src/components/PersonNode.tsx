@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { TreeNode } from '../types';
 import { NODE_W } from '../lib/pedigree';
+import { computeAge } from '../lib/age';
 
 interface Props {
   node: TreeNode;
@@ -50,7 +51,9 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
   const genLabel = GENERATION_LABELS[colorKey] ?? 'Ancestor';
   const birthYear = formatYear(node.birthDate);
   const deathYear = formatYear(node.deathDate);
-  const lifespan = birthYear ? (deathYear ? `${birthYear}–${deathYear}` : `b. ${birthYear}`) : null;
+  const age = computeAge(node);
+  const baseLifespan = birthYear ? (deathYear ? `${birthYear}–${deathYear}` : `b. ${birthYear}`) : null;
+  const lifespan = baseLifespan && age ? `${baseLifespan} · a. ${age.value}` : baseLifespan;
 
   const showLabel = node.generation !== 0 || node.role === 'sibling' || node.role === 'spouse';
   let labelText: string | null = null;
@@ -169,7 +172,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
           fontWeight: 700,
           fontSize: 22,
           color: filled ? '#ffffff' : '#0a0a0a',
-          lineHeight: 1.1,
+          lineHeight: 1.25,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Person, PersonDetail } from '../types';
 import { useViewport } from '../lib/useViewport';
+import { computeAge } from '../lib/age';
 import ViewNav from './ViewNav';
 
 interface Props {
@@ -86,9 +87,9 @@ export default function Biographies({ persons, details, exportDate, onNavigateRo
       <header style={{
         display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? 8 : 24,
-        paddingLeft: isMobile ? 12 : 24,
-        paddingRight: isMobile ? 8 : 24,
+        gap: isMobile ? 14 : 24,
+        paddingLeft: isMobile ? 14 : 24,
+        paddingRight: isMobile ? 10 : 24,
         flexShrink: 0,
         background: '#0a0a0a',
         borderBottom: '1px solid #222222',
@@ -118,7 +119,7 @@ export default function Biographies({ persons, details, exportDate, onNavigateRo
             fontSize: isMobile ? 17 : 25,
             letterSpacing: '-0.03em',
             color: '#ffffff',
-            lineHeight: 1,
+            lineHeight: 1.2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -288,9 +289,11 @@ function BiographyCard({
 }) {
   const birth = person.birthDate?.match(/\d{4}/)?.[0];
   const death = person.deathDate?.match(/\d{4}/)?.[0];
-  const lifespan = birth
+  const age = computeAge(person);
+  const baseLifespan = birth
     ? (death ? `${birth}–${death}` : `b. ${birth}`)
     : null;
+  const lifespan = baseLifespan && age ? `${baseLifespan} · a. ${age.value}` : baseLifespan;
   const place = person.birthPlace?.split(',').slice(-2).join(',').trim();
 
   return (
