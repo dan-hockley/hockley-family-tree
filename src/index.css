@@ -86,3 +86,12 @@ input, button {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.5);
 }
+
+/* Biography card → tree button */
+.bio-tree-btn {
+  color: #aaaaaa;
+  transition: color 0.12s ease;
+}
+.bio-tree-btn:hover {
+  color: #0047ff;
+}

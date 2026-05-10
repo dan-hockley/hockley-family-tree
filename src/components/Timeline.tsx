@@ -10,14 +10,14 @@ interface Props {
   onNavigateRoute: (path: string) => void;
 }
 
-const PX_PER_YEAR_DESKTOP = 18;
-const PX_PER_YEAR_MOBILE = 14;
-const AXIS_WIDTH = 84;
-const LANE_WIDTH_DESKTOP = 98;
-const LANE_WIDTH_MOBILE = 82;
-const LANE_GAP = 12;
-const TOP_PADDING = 40;
-const BOTTOM_PADDING = 40;
+const PX_PER_YEAR_DESKTOP = 6.3;
+const PX_PER_YEAR_MOBILE = 4.9;
+const AXIS_WIDTH = 59;
+const LANE_WIDTH_DESKTOP = 69;
+const LANE_WIDTH_MOBILE = 57;
+const LANE_GAP = 8;
+const TOP_PADDING = 28;
+const BOTTOM_PADDING = 28;
 
 const RELATION_COLORS = {
   self:       '#ff1a0e',
@@ -117,8 +117,8 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const NAME_BLOCK_H = 52;
-    const PAD = 10;
+    const NAME_BLOCK_H = 36;
+    const PAD = 7;
     const update = () => {
       const sl = el.scrollLeft;
       const st = el.scrollTop;
@@ -172,8 +172,8 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
   // Decade labels: every 10 years, plus minYear and maxYear if not on a decade
   const decadeYears = useMemo(() => {
     const years = new Set<number>();
-    const startDec = Math.floor(minYear / 10) * 10;
-    const endDec = Math.ceil(maxYear / 10) * 10;
+    const startDec = Math.ceil(minYear / 10) * 10;
+    const endDec = Math.floor(maxYear / 10) * 10;
     for (let y = startDec; y <= endDec; y += 10) years.add(y);
     return [...years].sort((a, b) => a - b);
   }, [minYear, maxYear]);
@@ -530,7 +530,7 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
                 const x = entry.lane * (laneWidth + LANE_GAP);
                 const yTop = yForYear(entry.deathYear);
                 const yBot = yForYear(entry.birthYear);
-                const height = Math.max(yBot - yTop, 24);
+                const height = Math.max(yBot - yTop, 80);
                 return (
                   <PersonBar
                     key={entry.person.id}
@@ -649,7 +649,7 @@ function YearAxis({
         background: '#0a0a0a',
       }} />
 
-      {/* Year ticks */}
+      {/* Year ticks: decades black, single years grey */}
       {Array.from({ length: maxYear - minYear + 1 }, (_, i) => {
         const year = maxYear - i;
         const y = yForYear(year);
@@ -663,7 +663,7 @@ function YearAxis({
               top: y,
               width: isDecade ? 14 : 7,
               height: 1,
-              background: '#0a0a0a',
+              background: isDecade ? '#0a0a0a' : '#bbbbbb',
             }}
           />
         );
@@ -734,15 +734,15 @@ function PersonBar({
         background: baseBg,
         border: `1px solid ${baseBorder}`,
         userSelect: 'none',
-        padding: '22px 12px 12px 12px',
+        padding: '15px 8px 8px 8px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 4,
+        gap: 3,
         overflow: 'hidden',
         ...hatchOverlay,
       }}
     >
-      {/* 10px color stripe at the top of the bar — absolutely positioned so it
+      {/* 7px color stripe at the top of the bar — absolutely positioned so it
           doesn't change the bar's geometry or push the column wider/taller. */}
       <div
         aria-hidden
@@ -751,7 +751,7 @@ function PersonBar({
           top: 0,
           left: 0,
           right: 0,
-          height: 10,
+          height: 7,
           background: textColor,
           pointerEvents: 'none',
         }}
@@ -762,7 +762,7 @@ function PersonBar({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
+          gap: 3,
           willChange: 'transform',
         }}
       >
@@ -770,7 +770,7 @@ function PersonBar({
         <div style={{
           fontFamily: "'Inter', sans-serif",
           fontWeight: 700,
-          fontSize: 11,
+          fontSize: 10,
           color: textColor,
           lineHeight: 1.15,
           letterSpacing: '-0.01em',
@@ -781,7 +781,7 @@ function PersonBar({
       </div>
 
       {/* Lifespan + estimated marker */}
-      {height > 60 && (
+      {height > 42 && (
         <div style={{
           marginTop: 'auto',
           display: 'flex',
@@ -790,7 +790,7 @@ function PersonBar({
         }}>
           <div style={{
             fontFamily: "'Inter', sans-serif",
-            fontSize: 9,
+            fontSize: 7,
             fontWeight: 500,
             color: textColor,
             letterSpacing: '0.04em',

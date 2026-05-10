@@ -19,6 +19,23 @@ function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: str
   );
 }
 
+// Hierarchy glyph: one square on top, two squares below, connecting lines
+function TreeIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" style={{ display: 'block' }}>
+      {/* Top square */}
+      <rect x="7" y="1.5" width="6" height="6" />
+      {/* Bottom-left square */}
+      <rect x="1" y="12.5" width="6" height="6" />
+      {/* Bottom-right square */}
+      <rect x="13" y="12.5" width="6" height="6" />
+      {/* Connectors: vertical down from top, horizontal across, vertical up to each child */}
+      <path d="M10 7.5 L10 10 L4 10 L4 12.5" />
+      <path d="M10 10 L16 10 L16 12.5" />
+    </svg>
+  );
+}
+
 function birthYear(p: Person): number | null {
   const m = p.birthDate?.match(/\d{4}/);
   return m ? parseInt(m[0], 10) : null;
@@ -217,7 +234,7 @@ export default function Biographies({ persons, details, onNavigateRoute, onOpenI
                 key={person.id}
                 person={person}
                 detail={detail}
-                onClick={() => onOpenInTree(person.id)}
+                onOpenInTree={() => onOpenInTree(person.id)}
               />
             ))
           )}
@@ -228,13 +245,12 @@ export default function Biographies({ persons, details, onNavigateRoute, onOpenI
 }
 
 function BiographyCard({
-  person, detail, onClick,
+  person, detail, onOpenInTree,
 }: {
   person: Person;
   detail: PersonDetail;
-  onClick: () => void;
+  onOpenInTree: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const birth = person.birthDate?.match(/\d{4}/)?.[0];
   const death = person.deathDate?.match(/\d{4}/)?.[0];
   const lifespan = birth
@@ -244,22 +260,15 @@ function BiographyCard({
 
   return (
     <article
-      className="person-card"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         background: '#ffffff',
         border: '1px solid #d8d8d8',
-        borderTop: hovered ? '3px solid #0047ff' : '1px solid #d8d8d8',
-        cursor: 'pointer',
         userSelect: 'none',
         padding: '32px 32px 36px',
         filter: 'drop-shadow(0 0 30px #cccccc)',
-        transition: 'border-top 0.12s',
       }}
     >
-      {/* Top row: star + lifespan */}
+      {/* Top row: star + lifespan + place + tree icon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <StarMark size={9} color="#0047ff" />
         {lifespan && (
@@ -277,7 +286,6 @@ function BiographyCard({
         )}
         {place && (
           <span style={{
-            marginLeft: 'auto',
             fontFamily: "'Inter', sans-serif",
             fontSize: 8,
             fontWeight: 600,
@@ -289,6 +297,26 @@ function BiographyCard({
             {place}
           </span>
         )}
+        <button
+          onClick={onOpenInTree}
+          aria-label={`Open ${person.name} in tree view`}
+          className="bio-tree-btn"
+          style={{
+            marginLeft: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            border: 'none',
+            background: 'transparent',
+            borderRadius: 0,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          <TreeIcon size={18} />
+        </button>
       </div>
 
       {/* Full name (given + surname inline) */}
