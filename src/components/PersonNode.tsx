@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { TreeNode } from '../types';
-import { NODE_W } from '../lib/pedigree';
+import { NODE_W, NODE_H } from '../lib/pedigree';
 import { computeAge } from '../lib/age';
 
 interface Props {
@@ -98,6 +98,7 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
         cursor: 'pointer',
         userSelect: 'none',
         width: NODE_W,
+        minHeight: NODE_H,
         left: node.x,
         top: node.y,
         background: filled ? fillBg : '#ffffff',
