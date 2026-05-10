@@ -300,7 +300,7 @@ function BiographyCard({
         border: '1px solid #d8d8d8',
         userSelect: 'none',
         padding: '32px 32px 36px',
-        filter: 'drop-shadow(0 0 30px #cccccc)',
+        boxShadow: '0 0 30px #cccccc',
       }}
     >
       {/* Top row: star + lifespan + place + tree icon */}
