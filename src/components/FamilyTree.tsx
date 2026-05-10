@@ -19,6 +19,7 @@ interface Props {
 
 const r = 10; // corner radius for connector elbows
 const CANVAS_MARGIN = 40;
+const MOBILE_SCALE = 0.7;
 
 function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string }) {
   return (
@@ -206,16 +207,17 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
   // Center the root node in the viewport whenever it changes. Use instant
   // scroll on first mount so the view doesn't animate from the top-left
   // corner; smooth scroll on subsequent re-roots.
+  const scale = isMobile ? MOBILE_SCALE : 1;
   const didInitialScroll = useRef(false);
   useEffect(() => {
     if (containerRef.current && layout) {
       const el = containerRef.current;
       const rootNode = layout.nodes.find(n => n.id === rootId);
       if (rootNode) {
-        const nodeLeft = rootNode.x + CANVAS_MARGIN;
-        const nodeTop = rootNode.y + CANVAS_MARGIN;
-        const scrollX = nodeLeft - (el.clientWidth - NODE_W) / 2;
-        const scrollY = nodeTop - (el.clientHeight - NODE_H) / 2;
+        const nodeLeft = (rootNode.x + CANVAS_MARGIN) * scale;
+        const nodeTop = (rootNode.y + CANVAS_MARGIN) * scale;
+        const scrollX = nodeLeft - (el.clientWidth - NODE_W * scale) / 2;
+        const scrollY = nodeTop - (el.clientHeight - NODE_H * scale) / 2;
         el.scrollTo({
           left: Math.max(0, scrollX),
           top: Math.max(0, scrollY),
@@ -224,7 +226,7 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
         didInitialScroll.current = true;
       }
     }
-  }, [rootId, layout]);
+  }, [rootId, layout, scale]);
 
   const searchResults = useMemo(() => {
     if (!search.trim()) return [];
@@ -543,9 +545,20 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
           <div
             style={{
               position: 'relative',
+              width: (layout.width + CANVAS_MARGIN * 2) * scale,
+              height: (layout.height + CANVAS_MARGIN * 2) * scale,
+              margin: CANVAS_MARGIN,
+            }}
+          >
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: layout.width + CANVAS_MARGIN * 2,
               height: layout.height + CANVAS_MARGIN * 2,
-              margin: CANVAS_MARGIN,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
             }}
           >
             <svg
@@ -584,6 +597,7 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
                 );
               })}
             </AnimatePresence>
+          </div>
           </div>
         )}
 
