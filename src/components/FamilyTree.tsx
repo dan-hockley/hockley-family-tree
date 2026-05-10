@@ -14,6 +14,7 @@ interface Props {
   exportDate: string | null;
   onNavigateRoute: (path: string) => void;
   onSetRoot: (personId: string) => void;
+  onGoHome: () => void;
 }
 
 const r = 10; // corner radius for connector elbows
@@ -131,7 +132,7 @@ function renderEdge(
   return null;
 }
 
-export default function FamilyTree({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot }: Props) {
+export default function FamilyTree({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot, onGoHome }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -259,8 +260,24 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
           height: headerHeight,
         }}
       >
-        {/* Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        {/* Title — click to return to the tree centered on Daniel */}
+        <button
+          type="button"
+          onClick={onGoHome}
+          aria-label="Hockley Family Tree home"
+          className="title-btn focus-ring-light"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            minWidth: 0,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
           <StarMark size={isMobile ? 12 : 15} color="#ffffff" />
           <span style={{
             fontFamily: "'Inter', sans-serif",
@@ -275,7 +292,7 @@ export default function FamilyTree({ persons, details, rootId: rootIdProp, expor
           }}>
             {isMobile ? 'Hockley' : 'Hockley Family Tree'}
           </span>
-        </div>
+        </button>
 
         {/* View toggle */}
         <ViewNav current="tree" onNavigateRoute={onNavigateRoute} />

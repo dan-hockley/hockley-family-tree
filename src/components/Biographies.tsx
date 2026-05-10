@@ -9,6 +9,7 @@ interface Props {
   exportDate: string | null;
   onNavigateRoute: (path: string) => void;
   onOpenInTree: (personId: string) => void;
+  onGoHome: () => void;
 }
 
 const CARD_MAX_W = 800;
@@ -43,7 +44,7 @@ function birthYear(p: Person): number | null {
   return m ? parseInt(m[0], 10) : null;
 }
 
-export default function Biographies({ persons, details, exportDate, onNavigateRoute, onOpenInTree }: Props) {
+export default function Biographies({ persons, details, exportDate, onNavigateRoute, onOpenInTree, onGoHome }: Props) {
   const { isMobile } = useViewport();
   const containerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
@@ -93,7 +94,23 @@ export default function Biographies({ persons, details, exportDate, onNavigateRo
         borderBottom: '1px solid #222222',
         height: headerHeight,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <button
+          type="button"
+          onClick={onGoHome}
+          aria-label="Hockley Family Tree home"
+          className="title-btn focus-ring-light"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            minWidth: 0,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
           <StarMark size={isMobile ? 12 : 15} color="#ffffff" />
           <span style={{
             fontFamily: "'Inter', sans-serif",
@@ -108,7 +125,7 @@ export default function Biographies({ persons, details, exportDate, onNavigateRo
           }}>
             {isMobile ? 'Hockley' : 'Hockley Family Tree'}
           </span>
-        </div>
+        </button>
 
         <ViewNav current="biographies" onNavigateRoute={onNavigateRoute} />
 

@@ -12,6 +12,7 @@ interface Props {
   exportDate: string | null;
   onNavigateRoute: (path: string) => void;
   onSetRoot: (personId: string) => void;
+  onGoHome: () => void;
 }
 
 const PX_PER_YEAR_DESKTOP = 6.3;
@@ -37,7 +38,7 @@ function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: str
   );
 }
 
-export default function Timeline({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot }: Props) {
+export default function Timeline({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot, onGoHome }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -212,7 +213,23 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
           height: headerHeight,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <button
+          type="button"
+          onClick={onGoHome}
+          aria-label="Hockley Family Tree home"
+          className="title-btn focus-ring-light"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            minWidth: 0,
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
           <StarMark size={isMobile ? 12 : 15} color="#ffffff" />
           <span style={{
             fontFamily: "'Inter', sans-serif",
@@ -227,7 +244,7 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
           }}>
             {isMobile ? 'Hockley' : 'Hockley Family Tree'}
           </span>
-        </div>
+        </button>
 
         {/* View toggle */}
         <ViewNav current="timeline" onNavigateRoute={onNavigateRoute} />
@@ -507,7 +524,6 @@ export default function Timeline({ persons, details, rootId: rootIdProp, exportD
                     height={height}
                     isRoot={entry.person.id === rootId}
                     registerSticky={registerSticky}
-                    onSelect={() => navigateRoot(entry.person.id)}
                   />
                 );
               })}
@@ -663,7 +679,7 @@ function YearAxis({
 }
 
 function PersonBar({
-  entry, x, y, width, height, isRoot, registerSticky, onSelect,
+  entry, x, y, width, height, isRoot, registerSticky,
 }: {
   entry: TimelineEntry;
   x: number;
@@ -672,7 +688,6 @@ function PersonBar({
   height: number;
   isRoot: boolean;
   registerSticky: (id: string, node: HTMLDivElement | null, y: number, height: number) => void;
-  onSelect: () => void;
 }) {
   // "Father" = root + every ancestor on the patrilineal chain.
   // Spouses are tagged as 'descendant' in this layout (they're partners of chain members).
@@ -693,17 +708,6 @@ function PersonBar({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      aria-label={`Open ${entry.person.name} in tree`}
-      className="focus-ring person-card"
       style={{
         position: 'absolute',
         left: x,
@@ -718,7 +722,6 @@ function PersonBar({
         flexDirection: 'column',
         gap: 3,
         overflow: 'hidden',
-        cursor: 'pointer',
         ...hatchOverlay,
       }}
     >

@@ -96,6 +96,14 @@ input, button {
   color: #0047ff;
 }
 
+/* Header title button */
+.title-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+.title-btn:hover span {
+  opacity: 0.85;
+}
+
 /* Header nav buttons */
 .view-nav-btn {
   transition: color 0.12s ease;

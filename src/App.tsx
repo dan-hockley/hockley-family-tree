@@ -89,6 +89,11 @@ export default function App() {
     navigate(newPath);
   }, [navigate]);
 
+  // Title click — return to the tree centered on the default root (Daniel).
+  const goHome = useCallback(() => {
+    navigate('/', { rootId: null });
+  }, [navigate]);
+
   const setRoot = useCallback((personId: string) => {
     navigate(window.location.pathname, { rootId: personId });
   }, [navigate]);
@@ -117,6 +122,7 @@ export default function App() {
         exportDate={exportDate}
         onNavigateRoute={navigateRoute}
         onSetRoot={setRoot}
+        onGoHome={goHome}
       />
     );
   } else if (path === '/biographies') {
@@ -127,6 +133,7 @@ export default function App() {
         exportDate={exportDate}
         onNavigateRoute={navigateRoute}
         onOpenInTree={openInTree}
+        onGoHome={goHome}
       />
     );
   } else {
@@ -138,6 +145,7 @@ export default function App() {
         exportDate={exportDate}
         onNavigateRoute={navigateRoute}
         onSetRoot={setRoot}
+        onGoHome={goHome}
       />
     );
   }
