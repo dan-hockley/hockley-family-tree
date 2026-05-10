@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { loadGedcom } from './lib/gedcom';
 import type { Person, PersonDetail } from './types';
 import FamilyTree from './components/FamilyTree';
+import Timeline from './components/Timeline';
 
 export default function App() {
   const [persons, setPersons] = useState<Person[]>([]);
   const [details, setDetails] = useState<Map<string, PersonDetail>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [path, setPath] = useState<string>(() =>
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
 
   useEffect(() => {
     loadGedcom('/hockley-2024.ged')
@@ -18,6 +22,18 @@ export default function App() {
       })
       .catch(err => { setError(String(err)); setLoading(false); });
   }, []);
+
+  useEffect(() => {
+    function onPop() { setPath(window.location.pathname); }
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  function navigateRoute(newPath: string) {
+    if (newPath === path) return;
+    window.history.pushState({}, '', newPath);
+    setPath(newPath);
+  }
 
   if (loading) {
     return (
@@ -87,5 +103,9 @@ export default function App() {
     );
   }
 
-  return <FamilyTree persons={persons} details={details} />;
+  if (path === '/timeline') {
+    return <Timeline persons={persons} details={details} onNavigateRoute={navigateRoute} />;
+  }
+
+  return <FamilyTree persons={persons} details={details} onNavigateRoute={navigateRoute} />;
 }

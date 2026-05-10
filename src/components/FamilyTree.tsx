@@ -9,6 +9,7 @@ import PersonSidebar from './PersonSidebar';
 interface Props {
   persons: Person[];
   details: Map<string, PersonDetail>;
+  onNavigateRoute: (path: string) => void;
 }
 
 const r = 10; // corner radius for connector elbows
@@ -126,7 +127,7 @@ function renderEdge(
   return null;
 }
 
-export default function FamilyTree({ persons, details }: Props) {
+export default function FamilyTree({ persons, details, onNavigateRoute }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -272,6 +273,36 @@ export default function FamilyTree({ persons, details }: Props) {
             {isMobile ? 'Hockley' : 'Hockley Family Tree'}
           </span>
         </div>
+
+        {/* View toggle: Tree / Timeline */}
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#ffffff',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Tree
+          </span>
+          <span
+            onClick={() => onNavigateRoute('/timeline')}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#aaaaaa',
+              cursor: 'pointer',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Timeline
+          </span>
+        </nav>
 
         <div style={{ flex: 1 }} />
 
@@ -496,11 +527,50 @@ export default function FamilyTree({ persons, details }: Props) {
       <div
         ref={containerRef}
         className="tree-canvas"
+        onMouseDown={e => {
+          // Left button only; ignore drags that started on an interactive card
+          if (e.button !== 0) return;
+          const el = containerRef.current;
+          if (!el) return;
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startScrollLeft = el.scrollLeft;
+          const startScrollTop = el.scrollTop;
+          let moved = false;
+          const onMove = (ev: MouseEvent) => {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            if (!moved && Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+            if (moved) {
+              el.scrollLeft = startScrollLeft - dx;
+              el.scrollTop = startScrollTop - dy;
+              el.style.cursor = 'grabbing';
+            }
+          };
+          const onUp = (ev: MouseEvent) => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp, true);
+            el.style.cursor = '';
+            if (moved) {
+              // Suppress the trailing click so a drag never navigates
+              ev.stopPropagation();
+              const swallow = (ce: MouseEvent) => {
+                ce.stopPropagation();
+                ce.preventDefault();
+                window.removeEventListener('click', swallow, true);
+              };
+              window.addEventListener('click', swallow, true);
+            }
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp, true);
+        }}
         style={{
           flex: 1,
           overflow: 'auto',
           background: '#ffffff',
           WebkitOverflowScrolling: 'touch',
+          cursor: 'grab',
         }}
       >
         {layout && (
