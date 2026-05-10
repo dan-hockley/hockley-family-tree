@@ -3,6 +3,7 @@ import { loadGedcom } from './lib/gedcom';
 import type { Person, PersonDetail } from './types';
 import FamilyTree from './components/FamilyTree';
 import Timeline from './components/Timeline';
+import Biographies from './components/Biographies';
 
 export default function App() {
   const [persons, setPersons] = useState<Person[]>([]);
@@ -12,6 +13,9 @@ export default function App() {
   const [path, setPath] = useState<string>(() =>
     typeof window !== 'undefined' ? window.location.pathname : '/'
   );
+  // When a biography card sends the user to /tree, this carries the desired
+  // root id across the route change so FamilyTree can pick it up on mount.
+  const [pendingTreeRoot, setPendingTreeRoot] = useState<string | null>(null);
 
   useEffect(() => {
     loadGedcom('/hockley-2024.ged')
@@ -33,6 +37,14 @@ export default function App() {
     if (newPath === path) return;
     window.history.pushState({}, '', newPath);
     setPath(newPath);
+  }
+
+  function navigateToTreeRoot(personId: string) {
+    setPendingTreeRoot(personId);
+    if (path !== '/') {
+      window.history.pushState({}, '', '/');
+      setPath('/');
+    }
   }
 
   if (loading) {
@@ -107,5 +119,24 @@ export default function App() {
     return <Timeline persons={persons} details={details} onNavigateRoute={navigateRoute} />;
   }
 
-  return <FamilyTree persons={persons} details={details} onNavigateRoute={navigateRoute} />;
+  if (path === '/biographies') {
+    return (
+      <Biographies
+        persons={persons}
+        details={details}
+        onNavigateRoute={navigateRoute}
+        onOpenInTree={navigateToTreeRoot}
+      />
+    );
+  }
+
+  return (
+    <FamilyTree
+      persons={persons}
+      details={details}
+      onNavigateRoute={navigateRoute}
+      pendingRoot={pendingTreeRoot}
+      onConsumePendingRoot={() => setPendingTreeRoot(null)}
+    />
+  );
 }

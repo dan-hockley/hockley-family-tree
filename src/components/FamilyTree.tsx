@@ -10,6 +10,8 @@ interface Props {
   persons: Person[];
   details: Map<string, PersonDetail>;
   onNavigateRoute: (path: string) => void;
+  pendingRoot?: string | null;
+  onConsumePendingRoot?: () => void;
 }
 
 const r = 10; // corner radius for connector elbows
@@ -127,7 +129,7 @@ function renderEdge(
   return null;
 }
 
-export default function FamilyTree({ persons, details, onNavigateRoute }: Props) {
+export default function FamilyTree({ persons, details, onNavigateRoute, pendingRoot, onConsumePendingRoot }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -139,7 +141,15 @@ export default function FamilyTree({ persons, details, onNavigateRoute }: Props)
     return daniel?.id ?? persons[0]?.id ?? '';
   }, [persons]);
 
-  const [rootId, setRootId] = useState<string>(defaultRoot);
+  const [rootId, setRootId] = useState<string>(() => {
+    if (pendingRoot && persons.some(p => p.id === pendingRoot)) return pendingRoot;
+    return defaultRoot;
+  });
+
+  // Consume the pending root once we've used it so it doesn't fire again
+  useEffect(() => {
+    if (pendingRoot) onConsumePendingRoot?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarId, setSidebarId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -203,7 +213,10 @@ export default function FamilyTree({ persons, details, onNavigateRoute }: Props)
     }
   }
 
-  // Center the root node in the viewport whenever it changes
+  // Center the root node in the viewport whenever it changes. Use instant
+  // scroll on first mount so the view doesn't animate from the top-left
+  // corner; smooth scroll on subsequent re-roots.
+  const didInitialScroll = useRef(false);
   useEffect(() => {
     if (containerRef.current && layout) {
       const el = containerRef.current;
@@ -216,8 +229,9 @@ export default function FamilyTree({ persons, details, onNavigateRoute }: Props)
         el.scrollTo({
           left: Math.max(0, scrollX),
           top: Math.max(0, scrollY),
-          behavior: 'smooth',
+          behavior: didInitialScroll.current ? 'smooth' : 'instant',
         });
+        didInitialScroll.current = true;
       }
     }
   }, [rootId, layout]);
@@ -301,6 +315,20 @@ export default function FamilyTree({ persons, details, onNavigateRoute }: Props)
             }}
           >
             Timeline
+          </span>
+          <span
+            onClick={() => onNavigateRoute('/biographies')}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#aaaaaa',
+              cursor: 'pointer',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Biographies
           </span>
         </nav>
 

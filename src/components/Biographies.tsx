@@ -1,0 +1,335 @@
+import { useMemo, useRef, useState } from 'react';
+import type { Person, PersonDetail } from '../types';
+import { useViewport } from '../lib/useViewport';
+
+interface Props {
+  persons: Person[];
+  details: Map<string, PersonDetail>;
+  onNavigateRoute: (path: string) => void;
+  onOpenInTree: (personId: string) => void;
+}
+
+const CARD_MAX_W = 800;
+
+function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, display: 'block' }}>
+      <path d="M10 0 L11.5 8.5 L20 10 L11.5 11.5 L10 20 L8.5 11.5 L0 10 L8.5 8.5 Z" fill={color} />
+    </svg>
+  );
+}
+
+function birthYear(p: Person): number | null {
+  const m = p.birthDate?.match(/\d{4}/);
+  return m ? parseInt(m[0], 10) : null;
+}
+
+export default function Biographies({ persons, details, onNavigateRoute, onOpenInTree }: Props) {
+  const { isMobile } = useViewport();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // People with at least one note, reverse chron by birth year
+  const entries = useMemo(() => {
+    return persons
+      .filter(p => (details.get(p.id)?.notes.length ?? 0) > 0)
+      .map(p => ({ person: p, detail: details.get(p.id)!, year: birthYear(p) }))
+      .sort((a, b) => {
+        // Most recent birth first; people without a birth year sink to the bottom
+        const ay = a.year ?? -Infinity;
+        const by = b.year ?? -Infinity;
+        return by - ay;
+      });
+  }, [persons, details]);
+
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    return persons.filter(p => p.name.toLowerCase().includes(q)).slice(0, 10);
+  }, [search, persons]);
+
+  const headerHeight = isMobile ? 44 : 48;
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      background: '#ffffff',
+      color: '#0a0a0a',
+      fontFamily: "'Inter', sans-serif",
+    }}>
+
+      {/* Header */}
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: isMobile ? 8 : 24,
+        paddingLeft: isMobile ? 12 : 24,
+        paddingRight: isMobile ? 8 : 24,
+        flexShrink: 0,
+        background: '#0a0a0a',
+        borderBottom: '1px solid #222222',
+        height: headerHeight,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <StarMark size={isMobile ? 12 : 15} color="#ffffff" />
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 800,
+            fontSize: isMobile ? 17 : 25,
+            letterSpacing: '-0.03em',
+            color: '#ffffff',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {isMobile ? 'Hockley' : 'Hockley Family Tree'}
+          </span>
+        </div>
+
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <span
+            onClick={() => onNavigateRoute('/')}
+            style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: '#aaaaaa', cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+            }}
+          >Tree</span>
+          <span
+            onClick={() => onNavigateRoute('/timeline')}
+            style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: '#aaaaaa', cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+            }}
+          >Timeline</span>
+          <span
+            style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: '#ffffff', fontFamily: "'Inter', sans-serif",
+            }}
+          >Biographies</span>
+        </nav>
+
+        <div style={{ flex: 1 }} />
+
+        {isMobile ? (
+          <button
+            onClick={() => setSearchOpen(o => !o)}
+            aria-label="Search"
+            style={{
+              width: 36, height: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid #333333',
+              background: searchOpen ? '#ffffff' : 'transparent',
+              color: searchOpen ? '#0a0a0a' : '#aaaaaa',
+              cursor: 'pointer', borderRadius: 0, padding: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20 L16 16" />
+            </svg>
+          </button>
+        ) : (
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{
+                background: '#1a1a1a', color: '#ffffff',
+                fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase',
+                borderRadius: 0, padding: '5px 10px', width: 190,
+                border: '1px solid #333333', outline: 'none', fontFamily: "'Inter', sans-serif",
+              }}
+              placeholder="Search People"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowSearch(true); }}
+              onFocus={() => setShowSearch(true)}
+              onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+            />
+            {showSearch && searchResults.length > 0 && (
+              <div style={{
+                position: 'absolute', right: 0, top: '100%', zIndex: 50,
+                width: 288, overflow: 'hidden',
+                background: '#ffffff', border: '1px solid #d8d8d8', marginTop: 2,
+              }}>
+                {searchResults.map((p, i) => (
+                  <button
+                    key={p.id}
+                    className="search-row"
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '10px 14px',
+                      borderBottom: i < searchResults.length - 1 ? '1px solid #ececec' : 'none',
+                      background: 'transparent', cursor: 'pointer',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                      fontFamily: "'Inter', sans-serif", border: 'none',
+                    }}
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => onOpenInTree(p.id)}
+                  >
+                    <span style={{ fontSize: 14, color: '#0a0a0a' }}>{p.name}</span>
+                    <span style={{ fontSize: 9, color: '#aaaaaa', letterSpacing: '0.08em' }}>
+                      {p.birthDate?.match(/\d{4}/)?.[0] ?? ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </header>
+
+      {/* Reading column */}
+      <div
+        ref={containerRef}
+        className="tree-canvas"
+        style={{
+          flex: 1,
+          overflow: 'auto',
+          background: '#ffffff',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <div style={{
+          maxWidth: CARD_MAX_W,
+          margin: '0 auto',
+          padding: isMobile ? '24px 16px 64px' : '40px 24px 96px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? 24 : 40,
+        }}>
+          {entries.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: 48,
+              fontSize: 11,
+              color: '#aaaaaa',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}>
+              No biographies yet
+            </div>
+          ) : (
+            entries.map(({ person, detail }) => (
+              <BiographyCard
+                key={person.id}
+                person={person}
+                detail={detail}
+                onClick={() => onOpenInTree(person.id)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BiographyCard({
+  person, detail, onClick,
+}: {
+  person: Person;
+  detail: PersonDetail;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const birth = person.birthDate?.match(/\d{4}/)?.[0];
+  const death = person.deathDate?.match(/\d{4}/)?.[0];
+  const lifespan = birth
+    ? (death ? `${birth}–${death}` : `b. ${birth}`)
+    : null;
+  const place = person.birthPlace?.split(',').slice(-2).join(',').trim();
+
+  return (
+    <article
+      className="person-card"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#ffffff',
+        border: '1px solid #d8d8d8',
+        borderTop: hovered ? '3px solid #0047ff' : '1px solid #d8d8d8',
+        cursor: 'pointer',
+        userSelect: 'none',
+        padding: '32px 32px 36px',
+        filter: 'drop-shadow(0 0 30px #cccccc)',
+        transition: 'border-top 0.12s',
+      }}
+    >
+      {/* Top row: star + lifespan */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <StarMark size={9} color="#0047ff" />
+        {lifespan && (
+          <span style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: '#0047ff',
+            lineHeight: 1,
+          }}>
+            {lifespan}
+          </span>
+        )}
+        {place && (
+          <span style={{
+            marginLeft: 'auto',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 8,
+            fontWeight: 600,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: '#aaaaaa',
+            lineHeight: 1,
+          }}>
+            {place}
+          </span>
+        )}
+      </div>
+
+      {/* Full name (given + surname inline) */}
+      <h2 style={{
+        fontFamily: "'Inter', sans-serif",
+        fontWeight: 700,
+        fontSize: 40,
+        letterSpacing: '-0.02em',
+        color: '#0a0a0a',
+        margin: 0,
+        lineHeight: 1.05,
+      }}>
+        {[person.givenName, person.surname].filter(Boolean).join(' ') || person.name}
+      </h2>
+
+      {/* Rule */}
+      <div style={{
+        borderTop: '1px solid #ececec',
+        marginTop: 24,
+        marginBottom: 24,
+      }} />
+
+      {/* Notes */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+      }}>
+        {detail.notes.map((note, i) => (
+          <p key={i} style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: 15,
+            lineHeight: 1.55,
+            color: '#0a0a0a',
+            margin: 0,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {note}
+          </p>
+        ))}
+      </div>
+    </article>
+  );
+}

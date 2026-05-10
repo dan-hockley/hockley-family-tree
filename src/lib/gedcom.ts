@@ -22,7 +22,17 @@ function parseDate(raw: string | undefined): string | undefined {
   return raw.replace(/^(ABT|CAL|EST|BEF|AFT)\s+/i, '~').trim() || undefined;
 }
 
-// Decode common HTML entities that Ancestry leaves in NOTE fields
+// True when a note is just Ancestry's "Person Source" placeholder noise,
+// possibly repeated. These notes contain no human-written content.
+function isSourceCitationNoise(s: string): boolean {
+  const trimmed = s.trim();
+  if (!trimmed) return true;
+  // "Person Source" alone, or repeated with whitespace between
+  return /^(person\s+source\s*)+$/i.test(trimmed);
+}
+
+// Decode common HTML entities that Ancestry leaves in NOTE fields, and strip
+// the `[[ ... ]]` wrappers it sometimes adds around whole notes.
 function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, '&')
@@ -32,7 +42,13 @@ function decodeEntities(s: string): string {
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)));
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    // Whole-note bracket wrappers (Ancestry sometimes wraps notes in [[...]])
+    .replace(/^\s*\[\[\s*/, '')
+    .replace(/\s*\]\]\s*$/, '')
+    // Any leftover stray double brackets within the body
+    .replace(/\[\[/g, '')
+    .replace(/\]\]/g, '');
 }
 
 export async function loadGedcom(
@@ -87,7 +103,10 @@ export async function loadGedcom(
     if (rec.level === 0) {
       // Flush pending note
       if (inNote && currentId && individuals[currentId]) {
-        individuals[currentId].notes.push(decodeEntities(pendingNoteLines.join('').trim()));
+        const decoded = decodeEntities(pendingNoteLines.join('').trim());
+        if (decoded && !isSourceCitationNoise(decoded)) {
+          individuals[currentId].notes.push(decoded);
+        }
       }
       pendingNoteLines = [];
       inNote = false;
@@ -121,7 +140,10 @@ export async function loadGedcom(
       if (rec.level === 1) {
         // Flush pending multi-line note
         if (inNote) {
-          indi.notes.push(decodeEntities(pendingNoteLines.join('').trim()));
+          const decoded = decodeEntities(pendingNoteLines.join('').trim());
+          if (decoded && !isSourceCitationNoise(decoded)) {
+            indi.notes.push(decoded);
+          }
           pendingNoteLines = [];
           inNote = false;
         }
@@ -201,7 +223,10 @@ export async function loadGedcom(
   // Flush any trailing note
   for (const [id, indi] of Object.entries(individuals)) {
     if (inNote && id === currentId) {
-      indi.notes.push(decodeEntities(pendingNoteLines.join('').trim()));
+      const decoded = decodeEntities(pendingNoteLines.join('').trim());
+      if (decoded && !isSourceCitationNoise(decoded)) {
+        indi.notes.push(decoded);
+      }
     }
   }
 

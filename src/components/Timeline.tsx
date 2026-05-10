@@ -13,8 +13,8 @@ interface Props {
 const PX_PER_YEAR_DESKTOP = 18;
 const PX_PER_YEAR_MOBILE = 14;
 const AXIS_WIDTH = 84;
-const LANE_WIDTH_DESKTOP = 78;
-const LANE_WIDTH_MOBILE = 62;
+const LANE_WIDTH_DESKTOP = 98;
+const LANE_WIDTH_MOBILE = 82;
 const LANE_GAP = 12;
 const TOP_PADDING = 40;
 const BOTTOM_PADDING = 40;
@@ -84,14 +84,28 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
     stickyRegistry.current.clear();
   }, [rootId]);
 
-  // Scroll so the root person's lifetime is centered on first load / root change.
+  // Force the canvas to start at the top on first mount. Re-pin to 0 across
+  // a few frames to beat browser scroll restoration / layout shifts from the
+  // breadcrumb appearing once data resolves.
+  const didInitialScroll = useRef(false);
   useEffect(() => {
     if (!containerRef.current || !layout) return;
+    const el = containerRef.current;
+    if (!didInitialScroll.current) {
+      didInitialScroll.current = true;
+      const pinTop = () => {
+        el.scrollTop = 0;
+        el.scrollLeft = 0;
+      };
+      pinTop();
+      requestAnimationFrame(pinTop);
+      requestAnimationFrame(() => requestAnimationFrame(pinTop));
+      return;
+    }
     const rootEntry = layout.entries.find(e => e.person.id === rootId);
     if (!rootEntry) return;
     const midYear = (rootEntry.birthYear + rootEntry.deathYear) / 2;
     const targetY = yForYear(midYear);
-    const el = containerRef.current;
     el.scrollTo({
       top: Math.max(0, targetY - el.clientHeight / 2),
       behavior: 'smooth',
@@ -235,6 +249,20 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
             }}
           >
             Timeline
+          </span>
+          <span
+            onClick={() => onNavigateRoute('/biographies')}
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: '#aaaaaa',
+              cursor: 'pointer',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Biographies
           </span>
         </nav>
 
@@ -429,11 +457,48 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
       <div
         ref={containerRef}
         className="tree-canvas"
+        onMouseDown={e => {
+          if (e.button !== 0) return;
+          const el = containerRef.current;
+          if (!el) return;
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startScrollLeft = el.scrollLeft;
+          const startScrollTop = el.scrollTop;
+          let moved = false;
+          const onMove = (ev: MouseEvent) => {
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            if (!moved && Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+            if (moved) {
+              el.scrollLeft = startScrollLeft - dx;
+              el.scrollTop = startScrollTop - dy;
+              el.style.cursor = 'grabbing';
+            }
+          };
+          const onUp = (ev: MouseEvent) => {
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp, true);
+            el.style.cursor = '';
+            if (moved) {
+              ev.stopPropagation();
+              const swallow = (ce: MouseEvent) => {
+                ce.stopPropagation();
+                ce.preventDefault();
+                window.removeEventListener('click', swallow, true);
+              };
+              window.addEventListener('click', swallow, true);
+            }
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp, true);
+        }}
         style={{
           flex: 1,
           overflow: 'auto',
           background: '#ffffff',
           WebkitOverflowScrolling: 'touch',
+          cursor: 'grab',
         }}
       >
         {layout && layout.entries.length > 0 ? (
@@ -653,7 +718,6 @@ function PersonBar({
   const baseBg = '#ffffff';
   const baseBorder = '#d8d8d8';
   const textColor = isFather ? FATHER_BLUE : MOTHER_PINK;
-  const subColor = isFather ? 'rgba(0, 71, 255, 0.65)' : 'rgba(255, 51, 153, 0.65)';
 
   const hatchOverlay = estimated ? {
     backgroundImage: 'repeating-linear-gradient(135deg, transparent 0px, transparent 5px, rgba(0,0,0,0.06) 5px, rgba(0,0,0,0.06) 6px)',
@@ -702,7 +766,7 @@ function PersonBar({
           willChange: 'transform',
         }}
       >
-        {/* Given name */}
+        {/* Full name (given + surname inline) */}
         <div style={{
           fontFamily: "'Inter', sans-serif",
           fontWeight: 700,
@@ -710,27 +774,10 @@ function PersonBar({
           color: textColor,
           lineHeight: 1.15,
           letterSpacing: '-0.01em',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          wordBreak: 'break-word',
         }}>
-          {entry.person.givenName || entry.person.name}
+          {[entry.person.givenName, entry.person.surname].filter(Boolean).join(' ') || entry.person.name}
         </div>
-
-        {/* Surname */}
-        {entry.person.surname && (
-          <div style={{
-            fontFamily: "'Inter', sans-serif",
-            fontWeight: 700,
-            fontSize: 7,
-            color: subColor,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            lineHeight: 1.2,
-          }}>
-            {entry.person.surname}
-          </div>
-        )}
       </div>
 
       {/* Lifespan + estimated marker */}
