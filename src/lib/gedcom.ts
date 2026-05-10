@@ -52,9 +52,12 @@ function decodeEntities(s: string): string {
 }
 
 export async function loadGedcom(
-  url: string
-): Promise<{ persons: Person[]; details: Map<string, PersonDetail> }> {
-  const text = await fetch(url).then(r => r.text());
+  url: string,
+  fetchInit?: RequestInit,
+): Promise<{ persons: Person[]; details: Map<string, PersonDetail>; exportDate: string | null }> {
+  const res = await fetch(url, fetchInit);
+  if (!res.ok) throw new Error(`Failed to load family data (${res.status})`);
+  const text = await res.text();
 
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
@@ -69,6 +72,21 @@ export async function loadGedcom(
       value: (m[4] || '').trim(),
     };
   }).filter(Boolean) as GedRecord[];
+
+  // Pull HEAD.DATE — the export timestamp Ancestry stamps on the file
+  let exportDate: string | null = null;
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i];
+    if (r.level === 0 && r.tag === 'HEAD') {
+      for (let j = i + 1; j < records.length && records[j].level > 0; j++) {
+        if (records[j].level === 1 && records[j].tag === 'DATE') {
+          exportDate = records[j].value || null;
+          break;
+        }
+      }
+      break;
+    }
+  }
 
   // Raw storage keyed by GEDCOM id
   interface RawIndi {
@@ -319,5 +337,5 @@ export async function loadGedcom(
     delete (p as unknown as Record<string, unknown>)._famsIds;
   }
 
-  return { persons, details };
+  return { persons, details, exportDate };
 }

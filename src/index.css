@@ -95,3 +95,30 @@ input, button {
 .bio-tree-btn:hover {
   color: #0047ff;
 }
+
+/* Header nav buttons */
+.view-nav-btn {
+  transition: color 0.12s ease;
+}
+.view-nav-btn:not(:disabled):hover {
+  color: #ffffff;
+}
+
+/* Loading bar — sweeps across a thin track */
+@keyframes loading-sweep {
+  0% { transform: translateX(-32px); }
+  100% { transform: translateX(80px); }
+}
+.loading-bar {
+  animation: loading-sweep 1.2s ease-in-out infinite;
+}
+
+/* Visible focus ring for interactive widgets */
+.focus-ring:focus-visible {
+  outline: 2px solid #0047ff;
+  outline-offset: 2px;
+}
+.focus-ring-light:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}

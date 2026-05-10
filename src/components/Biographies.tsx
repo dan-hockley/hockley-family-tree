@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import type { Person, PersonDetail } from '../types';
 import { useViewport } from '../lib/useViewport';
+import ViewNav from './ViewNav';
 
 interface Props {
   persons: Person[];
   details: Map<string, PersonDetail>;
+  exportDate: string | null;
   onNavigateRoute: (path: string) => void;
   onOpenInTree: (personId: string) => void;
 }
@@ -41,7 +43,7 @@ function birthYear(p: Person): number | null {
   return m ? parseInt(m[0], 10) : null;
 }
 
-export default function Biographies({ persons, details, onNavigateRoute, onOpenInTree }: Props) {
+export default function Biographies({ persons, details, exportDate, onNavigateRoute, onOpenInTree }: Props) {
   const { isMobile } = useViewport();
   const containerRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState('');
@@ -108,28 +110,7 @@ export default function Biographies({ persons, details, onNavigateRoute, onOpenI
           </span>
         </div>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span
-            onClick={() => onNavigateRoute('/')}
-            style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: '#aaaaaa', cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-            }}
-          >Tree</span>
-          <span
-            onClick={() => onNavigateRoute('/timeline')}
-            style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: '#aaaaaa', cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-            }}
-          >Timeline</span>
-          <span
-            style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: '#ffffff', fontFamily: "'Inter', sans-serif",
-            }}
-          >Biographies</span>
-        </nav>
+        <ViewNav current="biographies" onNavigateRoute={onNavigateRoute} />
 
         <div style={{ flex: 1 }} />
 
@@ -240,6 +221,43 @@ export default function Biographies({ persons, details, onNavigateRoute, onOpenI
           )}
         </div>
       </div>
+
+      {!isMobile && (
+        <footer style={{
+          borderTop: '2px solid #0a0a0a',
+          background: '#0a0a0a',
+          padding: '0 24px',
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 20,
+          lineHeight: 1,
+          flexShrink: 0,
+        }}>
+          <StarMark size={8} color="#ffffff" />
+          <span style={{
+            fontSize: 7,
+            fontWeight: 700,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: '#aaaaaa',
+            fontFamily: "'Inter', sans-serif",
+          }}>
+            {entries.length} {entries.length === 1 ? 'biography' : 'biographies'}
+          </span>
+          <span style={{
+            marginLeft: 'auto',
+            fontSize: 7,
+            fontWeight: 600,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: '#444444',
+            fontFamily: "'Inter', sans-serif",
+          }}>
+            {exportDate ? `Ancestry export · ${exportDate}` : 'Click the tree icon to view in tree'}
+          </span>
+        </footer>
+      )}
     </div>
   );
 }

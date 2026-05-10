@@ -78,9 +78,18 @@ export default function PersonNode({ node, isRoot, hasNotes, onSelect, onOpenNot
       exit={{ opacity: 0, y: 6 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       onClick={() => onSelect(node.id)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(node.id);
+        }
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`person-card ${isRoot ? 'is-root' : ''}`}
+      className={`person-card focus-ring ${isRoot ? 'is-root' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`${node.name}${node.birthDate ? `, born ${node.birthDate}` : ''}`}
       style={{
         position: 'absolute',
         cursor: 'pointer',

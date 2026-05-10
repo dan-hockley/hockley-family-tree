@@ -3,11 +3,15 @@ import type { Person, PersonDetail } from '../types';
 import { buildTimeline, type TimelineEntry } from '../lib/timeline';
 import { useViewport } from '../lib/useViewport';
 import PersonSidebar from './PersonSidebar';
+import ViewNav from './ViewNav';
 
 interface Props {
   persons: Person[];
   details: Map<string, PersonDetail>;
+  rootId: string | null;
+  exportDate: string | null;
   onNavigateRoute: (path: string) => void;
+  onSetRoot: (personId: string) => void;
 }
 
 const PX_PER_YEAR_DESKTOP = 6.3;
@@ -33,7 +37,7 @@ function StarMark({ size = 10, color = '#0a0a0a' }: { size?: number; color?: str
   );
 }
 
-export default function Timeline({ persons, details, onNavigateRoute }: Props) {
+export default function Timeline({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -45,7 +49,10 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
     return daniel?.id ?? persons[0]?.id ?? '';
   }, [persons]);
 
-  const [rootId, setRootId] = useState<string>(defaultRoot);
+  const rootId = useMemo(() => {
+    if (rootIdProp && personMap.has(rootIdProp)) return rootIdProp;
+    return defaultRoot;
+  }, [rootIdProp, personMap, defaultRoot]);
   const [sidebarId, setSidebarId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -154,10 +161,10 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
 
   function navigateRoot(id: string) {
     setSidebarId(null);
-    setRootId(id);
     setSearch('');
     setShowSearch(false);
     setSearchOpen(false);
+    onSetRoot(id);
   }
 
   const searchResults = useMemo(() => {
@@ -222,49 +229,8 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
           </span>
         </div>
 
-        {/* View toggle: Tree / Timeline */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span
-            onClick={() => onNavigateRoute('/')}
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#aaaaaa',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Tree
-          </span>
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#ffffff',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Timeline
-          </span>
-          <span
-            onClick={() => onNavigateRoute('/biographies')}
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#aaaaaa',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Biographies
-          </span>
-        </nav>
+        {/* View toggle */}
+        <ViewNav current="timeline" onNavigateRoute={onNavigateRoute} />
 
         <div style={{ flex: 1 }} />
 
@@ -541,6 +507,7 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
                     height={height}
                     isRoot={entry.person.id === rootId}
                     registerSticky={registerSticky}
+                    onSelect={() => navigateRoot(entry.person.id)}
                   />
                 );
               })}
@@ -610,7 +577,7 @@ export default function Timeline({ persons, details, onNavigateRoute }: Props) {
             color: '#444444',
             fontFamily: "'Inter', sans-serif",
           }}>
-            Down = back in time · Hatched = estimated
+            {exportDate ? `Ancestry export · ${exportDate}` : 'Down = back in time · Hatched = estimated'}
           </span>
         </footer>
       )}
@@ -696,7 +663,7 @@ function YearAxis({
 }
 
 function PersonBar({
-  entry, x, y, width, height, isRoot, registerSticky,
+  entry, x, y, width, height, isRoot, registerSticky, onSelect,
 }: {
   entry: TimelineEntry;
   x: number;
@@ -705,6 +672,7 @@ function PersonBar({
   height: number;
   isRoot: boolean;
   registerSticky: (id: string, node: HTMLDivElement | null, y: number, height: number) => void;
+  onSelect: () => void;
 }) {
   // "Father" = root + every ancestor on the patrilineal chain.
   // Spouses are tagged as 'descendant' in this layout (they're partners of chain members).
@@ -725,6 +693,17 @@ function PersonBar({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      aria-label={`Open ${entry.person.name} in tree`}
+      className="focus-ring person-card"
       style={{
         position: 'absolute',
         left: x,
@@ -739,6 +718,7 @@ function PersonBar({
         flexDirection: 'column',
         gap: 3,
         overflow: 'hidden',
+        cursor: 'pointer',
         ...hatchOverlay,
       }}
     >

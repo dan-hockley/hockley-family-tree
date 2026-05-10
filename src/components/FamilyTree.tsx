@@ -5,13 +5,15 @@ import { buildPedigree, NODE_W, NODE_H, type PedigreeEdge } from '../lib/pedigre
 import { useViewport } from '../lib/useViewport';
 import PersonNode from './PersonNode';
 import PersonSidebar from './PersonSidebar';
+import ViewNav from './ViewNav';
 
 interface Props {
   persons: Person[];
   details: Map<string, PersonDetail>;
+  rootId: string | null;
+  exportDate: string | null;
   onNavigateRoute: (path: string) => void;
-  pendingRoot?: string | null;
-  onConsumePendingRoot?: () => void;
+  onSetRoot: (personId: string) => void;
 }
 
 const r = 10; // corner radius for connector elbows
@@ -129,7 +131,7 @@ function renderEdge(
   return null;
 }
 
-export default function FamilyTree({ persons, details, onNavigateRoute, pendingRoot, onConsumePendingRoot }: Props) {
+export default function FamilyTree({ persons, details, rootId: rootIdProp, exportDate, onNavigateRoute, onSetRoot }: Props) {
   const personMap = useMemo(() => new Map(persons.map(p => [p.id, p])), [persons]);
   const { isMobile } = useViewport();
 
@@ -141,21 +143,17 @@ export default function FamilyTree({ persons, details, onNavigateRoute, pendingR
     return daniel?.id ?? persons[0]?.id ?? '';
   }, [persons]);
 
-  const [rootId, setRootId] = useState<string>(() => {
-    if (pendingRoot && persons.some(p => p.id === pendingRoot)) return pendingRoot;
+  // Resolve the active root from URL (?p=) falling back to Daniel.
+  const rootId = useMemo(() => {
+    if (rootIdProp && personMap.has(rootIdProp)) return rootIdProp;
     return defaultRoot;
-  });
+  }, [rootIdProp, personMap, defaultRoot]);
 
-  // Consume the pending root once we've used it so it doesn't fire again
-  useEffect(() => {
-    if (pendingRoot) onConsumePendingRoot?.();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarId, setSidebarId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false); // mobile: toggle search overlay
   const containerRef = useRef<HTMLDivElement>(null);
-  const [history, setHistory] = useState<string[]>([]);
 
   const layout = useMemo(() => {
     if (!rootId) return null;
@@ -190,19 +188,10 @@ export default function FamilyTree({ persons, details, onNavigateRoute, pendingR
 
   function navigateTo(id: string) {
     setSidebarId(null);
-    setHistory(h => [...h, rootId]);
-    setRootId(id);
     setSearch('');
     setShowSearch(false);
     setSearchOpen(false);
-  }
-
-  function navigateBack() {
-    if (history.length === 0) return;
-    const prev = history[history.length - 1];
-    setHistory(h => h.slice(0, -1));
-    setSidebarId(null);
-    setRootId(prev);
+    onSetRoot(id);
   }
 
   function handleNodeClick(id: string) {
@@ -288,78 +277,10 @@ export default function FamilyTree({ persons, details, onNavigateRoute, pendingR
           </span>
         </div>
 
-        {/* View toggle: Tree / Timeline */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#ffffff',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Tree
-          </span>
-          <span
-            onClick={() => onNavigateRoute('/timeline')}
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#aaaaaa',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Timeline
-          </span>
-          <span
-            onClick={() => onNavigateRoute('/biographies')}
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#aaaaaa',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Biographies
-          </span>
-        </nav>
+        {/* View toggle */}
+        <ViewNav current="tree" onNavigateRoute={onNavigateRoute} />
 
         <div style={{ flex: 1 }} />
-
-        {/* Back button */}
-        {history.length > 0 && (
-          <button
-            onClick={navigateBack}
-            className="back-btn"
-            style={{
-              fontSize: 8,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              color: '#aaaaaa',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: isMobile ? '8px 10px' : '5px 12px',
-              border: '1px solid #333333',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-              borderRadius: 0,
-              minHeight: isMobile ? 36 : undefined,
-            }}
-          >
-            ← Back
-          </button>
-        )}
 
         {/* Desktop: inline search. Mobile: icon toggle */}
         {isMobile ? (
@@ -717,7 +638,7 @@ export default function FamilyTree({ persons, details, onNavigateRoute, pendingR
             color: '#444444',
             fontFamily: "'Inter', sans-serif",
           }}>
-            Click to navigate
+            {exportDate ? `Ancestry export · ${exportDate}` : 'Click to navigate'}
           </span>
         </footer>
       )}
