@@ -6,7 +6,7 @@ import Timeline from './components/Timeline';
 import Biographies from './components/Biographies';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const GEDCOM_URL = '/hockley-2024.ged';
+const GEDCOM_URL = '/hockley-hayes-combined-2026.ged';
 const FETCH_TIMEOUT_MS = 30000;
 
 interface LoadState {

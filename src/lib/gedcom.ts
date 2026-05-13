@@ -253,7 +253,8 @@ export async function loadGedcom(
   const details = new Map<string, PersonDetail>();
 
   for (const [id, indi] of Object.entries(individuals)) {
-    const rawName = typeof indi.fields['NAME'] === 'string' ? indi.fields['NAME'] : '';
+    const nameField = indi.fields['NAME'];
+    const rawName = typeof nameField === 'string' ? nameField : Array.isArray(nameField) && typeof nameField[0] === 'string' ? nameField[0] : '';
     const { givenName, surname, full } = parseName(rawName);
 
     const birt = indi.events.find(e => e.type === 'BIRT');

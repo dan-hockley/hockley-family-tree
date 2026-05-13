@@ -2,7 +2,7 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/" }],
   "headers": [
     {
-      "source": "/hockley-2024.ged",
+      "source": "/hockley-hayes-combined-2026.ged",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=604800" },
         { "key": "Content-Type", "value": "text/plain; charset=utf-8" }
